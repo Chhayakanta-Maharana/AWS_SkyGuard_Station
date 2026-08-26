@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js Build Output
+frontend/.next/
+frontend/out/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+
+# Binaries & Large Executables (>100MB exceeds GitHub limits)
+*.exe
+dist/*.exe
+backend/*.exe
+
+# Logs & Databases
+*.log
+logs/
+database/*.db
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
