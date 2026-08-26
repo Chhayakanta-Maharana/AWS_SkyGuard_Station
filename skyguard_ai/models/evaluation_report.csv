@@ -1,0 +1,11 @@
+anomaly_type,sample_count,precision,recall,f1_score
+nominal,374,0.0,0.0,0.0
+temperature_spike,3,1.0,1.0,1.0
+sensor_drift,20,1.0,0.9,0.9473684210526315
+temperature_drop,8,1.0,0.625,0.7692307692307693
+gaussian_noise,7,1.0,0.8571428571428571,0.9230769230769231
+multivariate_inconsistency,3,1.0,1.0,1.0
+humidity_spike,8,1.0,0.875,0.9333333333333333
+pressure_spike,4,1.0,0.75,0.8571428571428571
+pressure_drop,3,1.0,1.0,1.0
+frozen_sensor,20,1.0,0.55,0.7096774193548387

@@ -1,0 +1,18 @@
+{
+  "features": [
+    "temperature",
+    "pressure",
+    "humidity",
+    "temp_delta",
+    "pressure_delta",
+    "humidity_delta",
+    "temp_rolling_mean_5",
+    "temp_rolling_std_5",
+    "pressure_rolling_mean_5",
+    "humidity_rolling_mean_5",
+    "dew_point",
+    "dew_point_spread",
+    "hour_sin",
+    "hour_cos"
+  ]
+}
