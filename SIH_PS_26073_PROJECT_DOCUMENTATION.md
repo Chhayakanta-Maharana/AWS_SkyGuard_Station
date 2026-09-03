@@ -24,55 +24,70 @@
 
 ```mermaid
 flowchart LR
-    %% Global Styling
-    classDef mainPhase fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc,font-weight:bold;
-    classDef dataBox fill:#1e1b4b,stroke:#818cf8,stroke-width:1.5px,color:#e0e7ff;
-    classDef mathBox fill:#311042,stroke:#c084fc,stroke-width:1.5px,color:#f3e8ff;
-    classDef mlBox fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#ecfdf5;
-    classDef alertBox fill:#701a75,stroke:#f472b6,stroke-width:1.5px,color:#fdf2f8;
-    
-    subgraph S1 ["Phase 1: Ingestion & Features"]
-        direction TB
-        IN["<b>RAW SENSOR INGRESS</b><br/>UDP 5000 / TCP 5001<br/>T(°C), P(hPa), RH(%)"]:::mainPhase
-        PARSE["<b>CANONICAL PARSER</b><br/>0xAA 0x55 Binary Decode<br/>Checksum-8 Validation"]:::dataBox
-        FEAT["<b>ROLLING FEATURES</b><br/>μ = Σ x_i / N<br/>Δx / Δt Gradients<br/>Cyclic (sin/cos hour)"]:::mathBox
+    classDef mainBox fill:#ffffff,stroke:#e11d48,stroke-width:2px,color:#0f172a,font-weight:bold,rx:5px,ry:5px;
+    classDef blueBox fill:#ffffff,stroke:#0284c7,stroke-width:2px,color:#0f172a,font-weight:bold,rx:5px,ry:5px;
+    classDef subBox fill:#f8fafc,stroke:#64748b,stroke-width:1.5px,color:#334155,rx:5px,ry:5px;
+    classDef diamondBox fill:#ffffff,stroke:#10b981,stroke-width:2px,color:#0f172a,font-weight:bold;
+    classDef circleBox fill:#f0fdf4,stroke:#10b981,stroke-width:1.5px,color:#0f172a,shape:circle;
+    classDef centerText fill:none,stroke:none,color:#0f172a,font-style:italic,font-size:15px;
+
+    %% --- LEFT VERTICAL SPINE ---
+    subgraph LeftSpine [ ]
+        direction TD
+        INP["AWS SENSOR INPUT"]:::mainBox
+        ING["DATA INGESTION"]:::blueBox
+        FEAT["FEATURE PIPELINE"]:::mainBox
+        VEC{"14-D Feature<br/>Vector"}:::diamondBox
+        ENG["HYBRID ANOMALY<br/>ENGINE"]:::blueBox
         
-        IN --> PARSE --> FEAT
+        INP --> ING --> FEAT --> VEC --> ENG
     end
 
-    subgraph S2 ["Phase 2: Hybrid Anomaly Engine"]
-        direction TB
-        VEC{"14-D<br/>Feature<br/>Vector"}:::mainPhase
-        QC["<b>TIER 1: PHYSICAL QC</b><br/>T ∈ [-40, 55]<br/>|ΔT| > 3.5°C/s<br/>σ² < 10⁻⁵ (Freeze)"]:::mathBox
-        THERMO["<b>TIER 2: THERMODYNAMICS</b><br/>e_s(T) = 6.112 * exp(...)<br/>e = e_s(T_w) - AP(ΔT)<br/>|RH_rep - RH_th| > 35%"]:::mathBox
-        ML["<b>TIER 3: ISOLATION FOREST</b><br/>S(x,n) = 2^(-E(h(x))/c(n))<br/>τ = Calibrated Threshold"]:::mlBox
-        
-        VEC --> QC --> THERMO --> ML
+    %% --- LEFT HORIZONTAL BRANCHES ---
+    ING --> ING1["Binary/CSV Parser"]:::subBox --> ING2["Checksum Validation"]:::subBox
+    ING2 --> ING3["Descaling Output"]:::subBox --> ING4["Canonical Struct"]:::subBox
+
+    FEAT --> FEAT1["Rolling Buffer"]:::subBox --> FEAT2["Rate of Change (ΔT)"]:::subBox
+    FEAT2 --> FEAT3["Cyclic Encodings"]:::subBox
+
+    ENG --> ENG1["Physical Bounds QC"]:::subBox --> ENG2["Magnus-Tetens Thermo"]:::subBox
+    ENG2 --> ENG3["Isolation Forest ML"]:::subBox
+
+    %% --- CENTER TEXT ---
+    subgraph CenterCol [ ]
+        direction TD
+        CENTER["SkyGuard AI processes AWS telemetry<br/>through a six-phase end-to-end pipeline —<br/>from raw sensor signals to<br/>interactive self-healing dashboard."]:::centerText
     end
 
-    subgraph S3 ["Phase 3: XAI & Self-Healing"]
-        direction TB
-        XAI["<b>TREE-PATH SHAP XAI</b><br/>Feature % Contribution<br/>Severity: LOW/MED/HIGH"]:::mainPhase
-        HEAL["<b>SELF-HEALING (EWMA)</b><br/>x_t = α·y_t + (1-α)·x_{t-1}<br/>Transducer Health % Decay"]:::dataBox
-        ONLINE["<b>ONLINE LEARNING</b><br/>Update Baseline (N=500)<br/>Recalibrate τ threshold"]:::mlBox
+    %% --- RIGHT VERTICAL SPINE ---
+    subgraph RightSpine [ ]
+        direction TD
+        XAI["EXPLAINABLE AI<br/>(XAI)"]:::mainBox
+        HEAL["SELF-HEALING<br/>ENGINE"]:::mainBox
+        DASH["NEXT.JS<br/>DASHBOARD"]:::blueBox
         
-        XAI --> HEAL --> ONLINE
+        XAI --> HEAL --> DASH
     end
 
-    subgraph S4 ["Phase 4: Output Deployment"]
-        direction TB
-        DASH["<b>NEXT.JS DASHBOARD</b><br/>SSE Stream (:8080)<br/>Live Gauges & Fault Bench"]:::mainPhase
-        EDGE["<b>ESP32 EDGE AI</b><br/>Sub-15μs Inference<br/>C++ Header Export"]:::alertBox
-        EXE["<b>DESKTOP NATIVE</b><br/>AWS_SkyGuard_Station.exe"]:::alertBox
-        
-        DASH --> EDGE
-        DASH --> EXE
-    end
+    %% --- RIGHT HORIZONTAL BRANCHES ---
+    XAI --> XAI1["SHAP Attribution"]:::subBox --> XAI2["Feature Contributions"]:::subBox
+    XAI2 --> XAI3["Confidence Classifier"]:::subBox --> XAI4["Diagnostic Text"]:::subBox
 
-    %% Cross-Phase Connections
-    FEAT ====>|Continuous Stream| VEC
-    ML ====>|Real-Time Anomaly Score| XAI
-    ONLINE ====>|Healed Data Stream| DASH
+    HEAL --> HEAL1["Sensor Health Decay"]:::subBox --> HEAL2["EWMA Imputation"]:::subBox
+    HEAL2 --> HEAL3["Inverse Psychrometric"]:::subBox --> HEAL4["Online Learning"]:::subBox
+
+    DASH --> C1(("Live<br/>Gauges")):::circleBox
+    DASH --> C2(("Fault<br/>Bench")):::circleBox
+    DASH --> C3(("Healed<br/>Stream")):::circleBox
+
+    %% --- LAYOUT ENFORCEMENT & CROSS CONNECTION ---
+    LeftSpine ~~~ CenterCol ~~~ RightSpine
+    ENG3 ----->|Real-time Scoring| XAI
+
+    %% Make subgraphs invisible
+    style LeftSpine fill:none,stroke:none
+    style CenterCol fill:none,stroke:none
+    style RightSpine fill:none,stroke:none
 ```
 
 > **Pipeline Overview:** *SkyGuard AI processes Automatic Weather Station telemetry through a six-phase end-to-end pipeline — from raw binary/UDP sensor signals to explainable root causes, self-healed data streams, and native desktop/edge deployments.*
