@@ -23,71 +23,80 @@
 ## 2. Architecture: Full Pipeline
 
 ```mermaid
-flowchart LR
+flowchart TD
     classDef mainBox fill:#ffffff,stroke:#e11d48,stroke-width:2px,color:#0f172a,font-weight:bold,rx:5px,ry:5px;
     classDef blueBox fill:#ffffff,stroke:#0284c7,stroke-width:2px,color:#0f172a,font-weight:bold,rx:5px,ry:5px;
     classDef subBox fill:#f8fafc,stroke:#64748b,stroke-width:1.5px,color:#334155,rx:5px,ry:5px;
     classDef diamondBox fill:#ffffff,stroke:#10b981,stroke-width:2px,color:#0f172a,font-weight:bold;
     classDef circleBox fill:#f0fdf4,stroke:#10b981,stroke-width:1.5px,color:#0f172a,shape:circle;
-    classDef centerText fill:none,stroke:none,color:#0f172a,font-style:italic,font-size:15px;
 
-    %% --- LEFT VERTICAL SPINE ---
-    subgraph LeftSpine [ ]
-        direction TD
+    %% 1. THE TOP CURVE (Left to Right)
+    subgraph TopCurve [ ]
+        direction LR
         INP["AWS SENSOR INPUT<br/>UDP 5000 / TCP 5001"]:::mainBox
         ING["DATA INGESTION"]:::blueBox
         FEAT["FEATURE PIPELINE"]:::mainBox
+        INP --> ING --> FEAT
+    end
+
+    %% 2. THE RIGHT DROP (Top Right going Down)
+    subgraph RightDrop [ ]
+        direction TD
         VEC{"14-D Feature<br/>Vector"}:::diamondBox
         ENG["HYBRID ANOMALY<br/>ENGINE"]:::blueBox
-        
-        INP --> ING --> FEAT --> VEC --> ENG
+        VEC --> ENG
     end
+    FEAT --> VEC
 
-    %% --- LEFT HORIZONTAL BRANCHES ---
-    ING --> ING1["<b>Packet Decoder</b><br/>0xAA 0x55 Binary Decode"]:::subBox --> ING2["<b>Checksum Validation</b><br/>Checksum-8 Verification"]:::subBox
-    ING2 --> ING3["<b>Descaling Output</b><br/>IEEE 754 Float32"]:::subBox --> ING4["<b>Canonical Struct</b><br/>JSON Serialization"]:::subBox
-
-    FEAT --> FEAT1["<b>Rolling Buffer</b><br/>μ = Σ x_i / N"]:::subBox --> FEAT2["<b>Rate of Change</b><br/>Δx / Δt Gradients"]:::subBox
-    FEAT2 --> FEAT3["<b>Cyclic Encodings</b><br/>sin(2πh/24)"]:::subBox
-
-    ENG --> ENG1["<b>Physical Bounds QC</b><br/>T ∈ [-40, 55], σ² < 10⁻⁵"]:::subBox --> ENG2["<b>Magnus-Tetens Thermo</b><br/>e_s(T) = 6.112*exp(...)<br/>e = e_s - AP(ΔT)"]:::subBox
-    ENG2 --> ENG3["<b>Isolation Forest ML</b><br/>S(x,n) = 2^(-E(h(x))/c(n))"]:::subBox
-
-    %% --- CENTER TEXT ---
-    subgraph CenterCol [ ]
-        direction TD
-        CENTER["SkyGuard AI processes AWS telemetry<br/>through a six-phase end-to-end pipeline —<br/>from raw sensor signals to<br/>interactive self-healing dashboard."]:::centerText
-    end
-
-    %% --- RIGHT VERTICAL SPINE ---
-    subgraph RightSpine [ ]
+    %% 3. THE STEM (Middle going Down)
+    subgraph Stem [ ]
         direction TD
         XAI["EXPLAINABLE AI<br/>(XAI)"]:::mainBox
         HEAL["SELF-HEALING<br/>ENGINE"]:::mainBox
         DASH["NEXT.JS<br/>DASHBOARD<br/>SSE Stream (:8080)"]:::blueBox
-        
         XAI --> HEAL --> DASH
     end
+    ENG ----->|Real-time Scoring Transfer| XAI
 
-    %% --- RIGHT HORIZONTAL BRANCHES ---
-    XAI --> XAI1["<b>SHAP Attribution</b><br/>Feature % Contribution"]:::subBox --> XAI2["<b>Severity Classifier</b><br/>LOW / MED / HIGH"]:::subBox
-    XAI2 --> XAI3["<b>Confidence Metric</b><br/>0.0% - 100.0%"]:::subBox --> XAI4["<b>Root-Cause Generator</b><br/>Text Diagnostics"]:::subBox
+    %% --- FORCE THE QUESTION MARK (?) LAYOUT ---
+    %% Push XAI exactly under ING (center)
+    ING ~~~ XAI
+    %% Push the left side away to curve it
+    INP ~~~ INV_SPACE[ ] ~~~ XAI
+    
+    %% --- SUB-BRANCHES (Kept exactly as they were without adding new things) ---
+    ING --> ING1["<b>Packet Decoder</b><br/>0xAA 0x55 Binary Decode"]:::subBox
+    ING1 --> ING2["<b>Checksum Validation</b><br/>Checksum-8 Verification"]:::subBox
+    ING2 --> ING3["<b>Descaling Output</b><br/>IEEE 754 Float32"]:::subBox
+    ING3 --> ING4["<b>Canonical Struct</b><br/>JSON Serialization"]:::subBox
 
-    HEAL --> HEAL1["<b>Health Decay Meter</b><br/>Cumulative Density"]:::subBox --> HEAL2["<b>EWMA Imputation</b><br/>x_t = α·y_t + (1-α)·x_{t-1}"]:::subBox
-    HEAL2 --> HEAL3["<b>Inverse Psychrometric</b><br/>Physical Estimation"]:::subBox --> HEAL4["<b>Online Learning</b><br/>Update Baseline (N=500)<br/>Recalibrate τ"]:::subBox
+    FEAT --> FEAT1["<b>Rolling Buffer</b><br/>μ = Σ x_i / N"]:::subBox
+    FEAT1 --> FEAT2["<b>Rate of Change</b><br/>Δx / Δt Gradients"]:::subBox
+    FEAT2 --> FEAT3["<b>Cyclic Encodings</b><br/>sin(2πh/24)"]:::subBox
+
+    ENG --> ENG1["<b>Physical Bounds QC</b><br/>T ∈ [-40, 55], σ² < 10⁻⁵"]:::subBox
+    ENG1 --> ENG2["<b>Magnus-Tetens Thermo</b><br/>e_s(T) = 6.112*exp(...)<br/>e = e_s - AP(ΔT)"]:::subBox
+    ENG2 --> ENG3["<b>Isolation Forest ML</b><br/>S(x,n) = 2^(-E(h(x))/c(n))"]:::subBox
+
+    XAI --> XAI1["<b>SHAP Attribution</b><br/>Feature % Contribution"]:::subBox
+    XAI1 --> XAI2["<b>Severity Classifier</b><br/>LOW / MED / HIGH"]:::subBox
+    XAI2 --> XAI3["<b>Confidence Metric</b><br/>0.0% - 100.0%"]:::subBox
+    XAI3 --> XAI4["<b>Root-Cause Generator</b><br/>Text Diagnostics"]:::subBox
+
+    HEAL --> HEAL1["<b>Health Decay Meter</b><br/>Cumulative Density"]:::subBox
+    HEAL1 --> HEAL2["<b>EWMA Imputation</b><br/>x_t = α·y_t + (1-α)·x_{t-1}"]:::subBox
+    HEAL2 --> HEAL3["<b>Inverse Psychrometric</b><br/>Physical Estimation"]:::subBox
+    HEAL3 --> HEAL4["<b>Online Learning</b><br/>Update Baseline (N=500)<br/>Recalibrate τ"]:::subBox
 
     DASH --> C1(("Live<br/>Gauges")):::circleBox
     DASH --> C2(("Fault<br/>Bench")):::circleBox
     DASH --> C3(("Healed<br/>Stream")):::circleBox
 
-    %% --- LAYOUT ENFORCEMENT & CROSS CONNECTION ---
-    LeftSpine ~~~ CenterCol ~~~ RightSpine
-    ENG3 ----->|Real-time Scoring| XAI
-
-    %% Make subgraphs invisible
-    style LeftSpine fill:none,stroke:none
-    style CenterCol fill:none,stroke:none
-    style RightSpine fill:none,stroke:none
+    %% Styling to hide construction boxes
+    style TopCurve fill:none,stroke:none
+    style RightDrop fill:none,stroke:none
+    style Stem fill:none,stroke:none
+    style INV_SPACE fill:none,stroke:none,color:none
 ```
 
 > **Pipeline Overview:** *SkyGuard AI processes Automatic Weather Station telemetry through a six-phase end-to-end pipeline — from raw binary/UDP sensor signals to explainable root causes, self-healed data streams, and native desktop/edge deployments.*
