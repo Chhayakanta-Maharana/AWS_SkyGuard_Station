@@ -34,7 +34,7 @@ flowchart LR
     %% --- LEFT VERTICAL SPINE ---
     subgraph LeftSpine [ ]
         direction TD
-        INP["AWS SENSOR INPUT"]:::mainBox
+        INP["AWS SENSOR INPUT<br/>UDP 5000 / TCP 5001"]:::mainBox
         ING["DATA INGESTION"]:::blueBox
         FEAT["FEATURE PIPELINE"]:::mainBox
         VEC{"14-D Feature<br/>Vector"}:::diamondBox
@@ -44,14 +44,14 @@ flowchart LR
     end
 
     %% --- LEFT HORIZONTAL BRANCHES ---
-    ING --> ING1["Binary/CSV Parser"]:::subBox --> ING2["Checksum Validation"]:::subBox
-    ING2 --> ING3["Descaling Output"]:::subBox --> ING4["Canonical Struct"]:::subBox
+    ING --> ING1["<b>Packet Decoder</b><br/>0xAA 0x55 Binary Decode"]:::subBox --> ING2["<b>Checksum Validation</b><br/>Checksum-8 Verification"]:::subBox
+    ING2 --> ING3["<b>Descaling Output</b><br/>IEEE 754 Float32"]:::subBox --> ING4["<b>Canonical Struct</b><br/>JSON Serialization"]:::subBox
 
-    FEAT --> FEAT1["Rolling Buffer"]:::subBox --> FEAT2["Rate of Change (ΔT)"]:::subBox
-    FEAT2 --> FEAT3["Cyclic Encodings"]:::subBox
+    FEAT --> FEAT1["<b>Rolling Buffer</b><br/>μ = Σ x_i / N"]:::subBox --> FEAT2["<b>Rate of Change</b><br/>Δx / Δt Gradients"]:::subBox
+    FEAT2 --> FEAT3["<b>Cyclic Encodings</b><br/>sin(2πh/24)"]:::subBox
 
-    ENG --> ENG1["Physical Bounds QC"]:::subBox --> ENG2["Magnus-Tetens Thermo"]:::subBox
-    ENG2 --> ENG3["Isolation Forest ML"]:::subBox
+    ENG --> ENG1["<b>Physical Bounds QC</b><br/>T ∈ [-40, 55], σ² < 10⁻⁵"]:::subBox --> ENG2["<b>Magnus-Tetens Thermo</b><br/>e_s(T) = 6.112*exp(...)<br/>e = e_s - AP(ΔT)"]:::subBox
+    ENG2 --> ENG3["<b>Isolation Forest ML</b><br/>S(x,n) = 2^(-E(h(x))/c(n))"]:::subBox
 
     %% --- CENTER TEXT ---
     subgraph CenterCol [ ]
@@ -64,17 +64,17 @@ flowchart LR
         direction TD
         XAI["EXPLAINABLE AI<br/>(XAI)"]:::mainBox
         HEAL["SELF-HEALING<br/>ENGINE"]:::mainBox
-        DASH["NEXT.JS<br/>DASHBOARD"]:::blueBox
+        DASH["NEXT.JS<br/>DASHBOARD<br/>SSE Stream (:8080)"]:::blueBox
         
         XAI --> HEAL --> DASH
     end
 
     %% --- RIGHT HORIZONTAL BRANCHES ---
-    XAI --> XAI1["SHAP Attribution"]:::subBox --> XAI2["Feature Contributions"]:::subBox
-    XAI2 --> XAI3["Confidence Classifier"]:::subBox --> XAI4["Diagnostic Text"]:::subBox
+    XAI --> XAI1["<b>SHAP Attribution</b><br/>Feature % Contribution"]:::subBox --> XAI2["<b>Severity Classifier</b><br/>LOW / MED / HIGH"]:::subBox
+    XAI2 --> XAI3["<b>Confidence Metric</b><br/>0.0% - 100.0%"]:::subBox --> XAI4["<b>Root-Cause Generator</b><br/>Text Diagnostics"]:::subBox
 
-    HEAL --> HEAL1["Sensor Health Decay"]:::subBox --> HEAL2["EWMA Imputation"]:::subBox
-    HEAL2 --> HEAL3["Inverse Psychrometric"]:::subBox --> HEAL4["Online Learning"]:::subBox
+    HEAL --> HEAL1["<b>Health Decay Meter</b><br/>Cumulative Density"]:::subBox --> HEAL2["<b>EWMA Imputation</b><br/>x_t = α·y_t + (1-α)·x_{t-1}"]:::subBox
+    HEAL2 --> HEAL3["<b>Inverse Psychrometric</b><br/>Physical Estimation"]:::subBox --> HEAL4["<b>Online Learning</b><br/>Update Baseline (N=500)<br/>Recalibrate τ"]:::subBox
 
     DASH --> C1(("Live<br/>Gauges")):::circleBox
     DASH --> C2(("Fault<br/>Bench")):::circleBox
