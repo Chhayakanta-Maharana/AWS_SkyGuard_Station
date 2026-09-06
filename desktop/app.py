@@ -162,19 +162,21 @@ def main():
     app.start_backend()
 
     window = webview.create_window(
-        "AWS SkyGuard Ground Station",
+        "AUTOMATED WEATHER STATION - SkyGuard Ground Telemetry Station",
         url=app.url,
-        width=1480,
-        height=900,
+        width=1920,
+        height=1080,
         min_size=(1200, 780),
-        background_color="#03020b"
+        background_color="#060913",
+        text_select=False,
+        zoomable=True
     )
 
     def on_closed():
         app.stop_backend()
 
     window.events.closed += on_closed
-    webview.start(gui="edgechromium")
+    webview.start(gui="edgechromium", debug=False)
 
 if __name__ == "__main__":
     main()
