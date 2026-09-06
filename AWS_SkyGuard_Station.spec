@@ -1,19 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import os
-
-project_dir = os.path.dirname(os.path.abspath(SPEC))
 
 a = Analysis(
-    [os.path.join(project_dir, 'desktop', 'app.py')],
+    ['D:/SIH73/AWS_SkyGuard_Station/desktop/app.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        (os.path.join(project_dir, 'backend', 'aws-telemetry-backend.exe'), 'backend'),
-        (os.path.join(project_dir, 'frontend', 'out'), 'frontend/out'),
-        (os.path.join(project_dir, 'skyguard_ai', 'models'), 'skyguard_ai/models')
-    ],
-    hiddenimports=['sklearn', 'joblib', 'numpy', 'pandas', 'fastapi', 'uvicorn'],
+    datas=[('D:/SIH73/AWS_SkyGuard_Station/backend/aws-telemetry-backend.exe', 'backend'), ('D:/SIH73/AWS_SkyGuard_Station/frontend/out', 'frontend/out')],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
