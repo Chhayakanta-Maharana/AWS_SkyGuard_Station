@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=1500"/>
+  <title>SkyGuard AI — Research Workflow</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: #f0f4ff;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+
+    /* ── Poster card ── */
+    .poster {
+      width: 1400px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 48px rgba(26,58,92,0.15);
+      padding: 36px 48px 44px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* subtle background grid */
+    .poster::before {
+      content:''; position:absolute; inset:0;
+      background-image: radial-gradient(circle, #e8edf5 1px, transparent 1px);
+      background-size: 30px 30px; opacity:0.4; pointer-events:none;
+    }
+
+    /* ── Title ── */
+    .title {
+      text-align: center; margin-bottom: 32px; position: relative;
+    }
+    .title h1 {
+      font-size: 28px; font-weight: 900; color: #1a3a5c; letter-spacing: -0.5px;
+    }
+    .title p {
+      font-size: 13px; color: #78909c; margin-top: 4px; font-weight: 500;
+    }
+    .title-line {
+      width: 800px; height: 2px;
+      background: linear-gradient(90deg, transparent, #cfd8dc, transparent);
+      margin: 10px auto 0;
+    }
+
+    /* ── Chevron row ── */
+    .row { display: flex; align-items: center; justify-content: center; gap: 0; }
+    .row-reverse { flex-direction: row-reverse; }
+
+    /* ── Chevron step ── */
+    .step { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+    .icon-ring {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2.5px solid currentColor; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* chevron base shape using flex */
+    .chev {
+      display: flex; align-items: stretch; height: 76px; position: relative;
+    }
+    .chev-body {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 0 14px; text-align: center; color: #fff;
+      min-width: 250px;
+    }
+    .chev-body b { font-size: 13.5px; font-weight: 800; line-height: 1.3; }
+    .chev-body span { font-size: 10.5px; font-weight: 500; opacity: 0.88; line-height: 1.4; margin-top:3px; }
+
+    /* right-pointing triangle tip */
+    .tip-r {
+      width: 0; height: 0;
+      border-top: 38px solid transparent;
+      border-bottom: 38px solid transparent;
+      flex-shrink: 0;
+    }
+    /* left notch */
+    .notch-l {
+      width: 0; height: 0;
+      border-top: 38px solid #fff;
+      border-bottom: 38px solid #fff;
+      flex-shrink: 0;
+    }
+    /* left-pointing tip (for reversed row) */
+    .tip-l {
+      width: 0; height: 0;
+      border-top: 38px solid transparent;
+      border-bottom: 38px solid transparent;
+      flex-shrink: 0;
+    }
+    /* right notch (for reversed row) */
+    .notch-r {
+      width: 0; height: 0;
+      border-top: 38px solid #fff;
+      border-bottom: 38px solid #fff;
+      flex-shrink: 0;
+    }
+
+    .step:not(:first-child) { margin-left: -2px; }
+    .row-reverse .step:not(:first-child) { margin-left: 0; margin-right: -2px; }
+
+    /* caption below each chevron */
+    .cap { text-align: center; line-height: 1.4; margin-top: 2px; }
+    .cap b { font-size: 12.5px; font-weight: 700; }
+    .cap span { display: block; font-size: 11px; font-weight: 500; }
+
+    /* ── Snake connector ── */
+    .snake {
+      display: flex; margin: 4px 0;
+    }
+    .snake.right { justify-content: flex-end; padding-right: 10px; }
+    .snake.left  { justify-content: flex-start; padding-left: 10px; }
+    .snake svg { width: 70px; height: 42px; }
+
+    /* ── Connector milestone badge ── */
+    .milestone {
+      font-size: 12px; font-weight: 700;
+      padding: 2px 10px; border-radius: 20px;
+      margin-top: 2px;
+    }
+
+    /* ── ROW 3 — Live Demo + GitHub ── */
+    .cta-row {
+      display: flex; justify-content: center; gap: 32px;
+      margin-top: 28px; position: relative;
+    }
+
+    /* highlight pulse ring */
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(255,214,0,0.7); }
+      70%  { box-shadow: 0 0 0 16px rgba(255,214,0,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,214,0,0); }
+    }
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(255,214,0,0.8)); }
+      50%       { filter: drop-shadow(0 0 20px rgba(255,214,0,1)); }
+    }
+
+    .cta-btn {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-decoration: none;
+      width: 300px; height: 88px; border-radius: 14px;
+      border: 4px solid #FFD600; cursor: pointer;
+      transition: transform 0.2s, filter 0.2s;
+      animation: pulse 2s infinite;
+      position: relative;
+    }
+    .cta-btn:hover {
+      transform: scale(1.04);
+      filter: brightness(1.1) drop-shadow(0 0 20px rgba(255,214,0,0.9));
+    }
+
+    .cta-btn .badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: #FFD600; color: #000; font-size: 10px; font-weight: 800;
+      padding: 2px 10px; border-radius: 20px; letter-spacing: 1px;
+      white-space: nowrap; text-transform: uppercase;
+    }
+
+    .cta-btn .icon { font-size: 28px; line-height: 1; }
+    .cta-btn .label {
+      font-size: 16px; font-weight: 900; letter-spacing: 0.3px; margin-top: 4px;
+    }
+    .cta-btn .url {
+      font-size: 11px; font-weight: 600; opacity: 0.85;
+      margin-top: 2px; letter-spacing: 0.5px;
+    }
+    .cta-btn .arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; }
+
+    /* Demo = orange */
+    .cta-demo { background: #e65100; color: #fff; }
+    /* GitHub = dark */
+    .cta-github { background: #1b1f23; color: #FFD600; }
+
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      margin-top: 20px; text-align: center;
+      background: #FFF8E1; border: 1.5px solid #FFD600;
+      border-radius: 8px; padding: 8px 20px;
+      font-size: 12.5px; font-weight: 600; color: #e65100;
+    }
+
+    /* ── Spacing ── */
+    .mb-6  { margin-bottom: 6px; }
+    .mb-16 { margin-bottom: 16px; }
+    .divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, #e0e7ef, transparent);
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="poster">
+
+  <!-- ══ TITLE ══ -->
+  <div class="title">
+    <h1>SKYGUARD AI — RESEARCH TO DEPLOYMENT WORKFLOW</h1>
+    <p>SIH 2026 · Problem Statement PS-26073 · Ministry of Earth Sciences</p>
+    <div class="title-line"></div>
+  </div>
+
+  <!-- ══ ROW 1 : Problem → Literature → Gap ══ -->
+  <div class="row mb-6">
+
+    <!-- Step 1 — Problem -->
+    <div class="step">
+      <div class="icon-ring" style="color:#1a3a5c">🔍</div>
+      <div class="chev">
+        <div class="chev-body" style="background:#37474f; border-radius:10px 0 0 10px; padding-left:22px;">
+          <b>Problem Identified</b>
+          <span>AWS Sensor Faults<br>Spike · Freeze · Drift</span>
+        </div>
+        <div class="tip-r" style="border-left:22px solid #37474f;"></div>
+      </div>
+    </div>
+
+    <!-- Step 2 — Literature -->
+    <div class="step" style="margin-left:-2px;">
+      <div class="icon-ring" style="color:#1e88e5">📚</div>
+      <div class="chev">
+        <div class="notch-l" style="border-right:20px solid #1e88e5;"></div>
+        <div class="chev-body" style="background:#1e88e5;">
+          <b>Literature Review</b>
+          <span>5 Key Papers<br>WMO · AMS · IEEE · arXiv</span>
+        </div>
+        <div class="tip-r" style="border-left:22px solid #1e88e5;"></div>
+      </div>
+    </div>
+
+    <!-- Step 3 — Gap Analysis -->
+    <div class="step" style="margin-left:-2px;">
+      <div class="icon-ring" style="color:#1a3a5c">⚠️</div>
+      <div class="chev">
+        <div class="notch-l" style="border-right:20px solid #1a3a5c;"></div>
+        <div class="chev-body" style="background:#1a3a5c; padding-right:22px; border-radius:0 10px 10px 0;">
+          <b>Gap Analysis</b>
+          <span>No ML · No XAI<br>No Self-Healing Found</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row1 -->
+
+  <!-- ── Snake connector RIGHT → milestone badge ── -->
+  <div class="snake right">
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <span class="milestone" style="background:#e3f2fd;color:#1e88e5;">🌐 Research Foundation Mapped to Design</span>
+      <svg viewBox="0 0 70 42" fill="none">
+        <path d="M10 8 Q60 8 60 21 Q60 34 10 34"
+              stroke="#1e88e5" stroke-width="4" fill="none"/>
+        <polygon points="10,28 4,34 10,40" fill="#1e88e5"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ══ ROW 2 : Validated ← AI Built ← Algorithm Design ══ -->
+  <div class="row row-reverse mb-6">
+
+    <!-- Step 6 — Validated (leftmost visual) -->
+    <div class="step">
+      <div class="icon-ring" style="color:#e65100">✅</div>
+      <div class="chev" style="flex-direction:row-reverse;">
+        <div class="chev-body" style="background:#e65100; border-radius:10px 0 0 10px; padding-left:22px;">
+          <b>Validated &amp; Deployed</b>
+          <span>All Fault Scenarios Pass<br>Sub-ms Detection</span>
+        </div>
+        <div class="tip-l" style="border-right:22px solid #e65100;"></div>
+      </div>
+    </div>
+
+    <!-- Step 5 — AI Built -->
+    <div class="step" style="margin-right:-2px;">
+      <div class="icon-ring" style="color:#5e35b1">⚙️</div>
+      <div class="chev" style="flex-direction:row-reverse;">
+        <div class="notch-r" style="border-left:20px solid #5e35b1;"></div>
+        <div class="chev-body" style="background:#5e35b1;">
+          <b>SkyGuard AI Built</b>
+          <span>Go + Python + Next.js<br>Full-Stack Implementation</span>
+        </div>
+        <div class="tip-l" style="border-right:22px solid #5e35b1;"></div>
+      </div>
+    </div>
+
+    <!-- Step 4 — Algorithm Design (rightmost visual) -->
+    <div class="step" style="margin-right:-2px;">
+      <div class="icon-ring" style="color:#e65100">💡</div>
+      <div class="chev" style="flex-direction:row-reverse;">
+        <div class="notch-r" style="border-left:20px solid #e65100;"></div>
+        <div class="chev-body" style="background:#e65100; padding-right:22px; border-radius:0 10px 10px 0;">
+          <b>Algorithm Design</b>
+          <span>IF + SHAP + EWMA<br>Selected &amp; Validated</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row2 -->
+
+  <!-- ── Snake connector LEFT ── -->
+  <div class="snake left">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+      <span class="milestone" style="background:#f3e5f5;color:#5e35b1;">📢 Solution Engineered &amp; Deployment-Ready</span>
+      <svg viewBox="0 0 70 42" fill="none">
+        <path d="M60 8 Q10 8 10 21 Q10 34 60 34"
+              stroke="#5e35b1" stroke-width="4" fill="none"/>
+        <polygon points="60,28 66,34 60,40" fill="#5e35b1"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ ROW 3 — LIVE DEMO + GITHUB (CLICKABLE) ══ -->
+  <div style="text-align:center;margin-bottom:12px;">
+    <span style="font-size:12px;font-weight:700;letter-spacing:2px;color:#78909c;text-transform:uppercase;">⭐ Click below to explore the project ⭐</span>
+  </div>
+
+  <div class="cta-row">
+
+    <!-- LIVE DEMO — links to YouTube -->
+    <a href="https://www.youtube.com" target="_blank" class="cta-btn cta-demo">
+      <span class="badge">🎬 Live Demo</span>
+      <div class="icon">▶</div>
+      <div class="label">WATCH LIVE DEMO</div>
+      <div class="url">youtube.com ↗</div>
+      <div class="arrow">→</div>
+    </a>
+
+    <!-- GITHUB REPO — links to GitHub -->
+    <a href="https://www.github.com" target="_blank" class="cta-btn cta-github">
+      <span class="badge">💻 GitHub Repo</span>
+      <div class="icon">⌥</div>
+      <div class="label">VIEW SOURCE CODE</div>
+      <div class="url">github.com ↗</div>
+      <div class="arrow" style="color:#fff;">→</div>
+    </a>
+
+  </div><!-- /cta-row -->
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    🔗 Both buttons above are <strong>CLICKABLE</strong> — opens in browser &nbsp;|&nbsp;
+    Replace URLs: youtube.com → your actual demo link &nbsp;&amp;&nbsp; github.com → your repo URL
+  </div>
+
+</div><!-- /poster -->
+</body>
+</html>

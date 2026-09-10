@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1400" />
+  <title>SkyGuard AI — Corrected Architecture Diagram | SIH 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1400px; min-height: 960px;
+      background: #F0F4F8;
+      font-family: 'Inter', sans-serif; color: #1E293B;
+    }
+
+    /* ── HEADER ── */
+    .header { background:#FFFFFF; border-bottom:2px solid #E2E8F0; padding:18px 44px 14px; display:flex; align-items:center; justify-content:space-between; }
+    .header-eyebrow { font-size:9px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:#64748B; margin-bottom:4px; }
+    .header-title { font-size:22px; font-weight:900; color:#0F172A; letter-spacing:-0.4px; }
+    .header-title span { color:#0EA5E9; }
+    .header-sub { font-size:11px; color:#64748B; margin-top:3px; }
+    .header-badges { display:flex; gap:10px; align-items:center; }
+    .hbadge { border-radius:10px; padding:8px 16px; text-align:center; }
+    .hbadge-blue  { background:#EFF6FF; border:1.5px solid #BFDBFE; }
+    .hbadge-green { background:#ECFDF5; border:1.5px solid #A7F3D0; }
+    .hbadge-name  { font-size:13px; font-weight:900; color:#0F172A; }
+    .hbadge-lbl   { font-size:8px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:2px; }
+
+    /* ── CANVAS ── */
+    .canvas { padding:22px 44px 26px; display:flex; flex-direction:column; gap:0; }
+
+    /* ── TIER ROW ── */
+    .tier-row { display:flex; align-items:stretch; margin-bottom:8px; }
+    .tier-label { writing-mode:vertical-lr; transform:rotate(180deg); display:flex; align-items:center; justify-content:center; min-width:36px; font-size:8.5px; font-weight:900; letter-spacing:2.5px; text-transform:uppercase; border-radius:10px 0 0 10px; flex-shrink:0; padding:14px 0; }
+    .tier-body  { flex:1; border-radius:0 12px 12px 0; border:1.5px solid; border-left:none; padding:14px 18px 16px; }
+
+    /* Tier colour themes */
+    .t1 .tier-label { background:#DBEAFE; color:#1D4ED8; }
+    .t1 .tier-body  { background:#F8FBFF; border-color:#BFDBFE; }
+    .t2 .tier-label { background:#DCFCE7; color:#15803D; }
+    .t2 .tier-body  { background:#F0FDF4; border-color:#A7F3D0; }
+    .t3 .tier-label { background:#FFEDD5; color:#9A3412; }
+    .t3 .tier-body  { background:#FFFBF5; border-color:#FED7AA; }
+    .t4 .tier-label { background:#EDE9FE; color:#6B21A8; }
+    .t4 .tier-body  { background:#FAF5FF; border-color:#E9D5FF; }
+
+    /* ── TIER HEADER ── */
+    .tier-header { font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; padding-bottom:8px; border-bottom:1px dashed; display:flex; align-items:center; gap:7px; }
+    .t1 .tier-header { color:#1D4ED8; border-color:#BFDBFE; }
+    .t2 .tier-header { color:#15803D; border-color:#A7F3D0; }
+    .t3 .tier-header { color:#9A3412; border-color:#FED7AA; }
+    .t4 .tier-header { color:#6B21A8; border-color:#E9D5FF; }
+
+    /* ── COLUMN LAYOUT ── */
+    .cols { display:flex; gap:14px; align-items:flex-start; }
+    .col  { flex:1; display:flex; flex-direction:column; gap:7px; }
+    .col-divider { width:1px; align-self:stretch; background:#E2E8F0; flex-shrink:0; }
+    .col-head { font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#64748B; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
+
+    /* ── BOX (mini node) ── */
+    .box { background:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:9px; padding:8px 11px; display:flex; align-items:flex-start; gap:8px; }
+    .box-icon    { font-size:15px; flex-shrink:0; margin-top:1px; }
+    .box-title   { font-size:9.5px; font-weight:700; color:#1E293B; line-height:1.35; }
+    .box-formula { font-size:8px; color:#64748B; font-family:'JetBrains Mono',monospace; margin-top:2px; line-height:1.4; }
+    .box-blue   { border-color:#93C5FD; background:#EFF6FF; }
+    .box-green  { border-color:#6EE7B7; background:#ECFDF5; }
+    .box-orange { border-color:#FCA5A5; background:#FFF1F2; }
+    .box-amber  { border-color:#FCD34D; background:#FEFCE8; }
+    .box-violet { border-color:#C4B5FD; background:#F5F3FF; }
+    .box-sky    { border-color:#7DD3FC; background:#F0F9FF; }
+    .box-warm   { border-color:#FCA5A5; background:#FFF7ED; }
+
+    /* ── ARROWS ── */
+    .arrow-h { display:flex; align-items:center; padding:0 8px; flex-shrink:0; }
+    .arrow-h-line { height:2px; width:28px; background:#94A3B8; }
+    .arrow-h-head { font-size:10px; color:#94A3B8; margin-left:-1px; }
+    .tier-connector { display:flex; align-items:center; justify-content:center; height:22px; position:relative; margin:0 0 0 36px; }
+    .tc-line  { width:2px; height:100%; background:#94A3B8; }
+    .tc-arrow { font-size:11px; color:#64748B; position:absolute; bottom:-2px; }
+    .tc-label { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:7.5px; font-weight:700; color:#94A3B8; background:#F0F4F8; padding:1px 5px; border-radius:4px; white-space:nowrap; }
+
+    /* ── PILL ── */
+    .pill { font-size:8px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; font-family:'JetBrains Mono',monospace; display:inline-flex; align-items:center; gap:4px; }
+    .pill-blue   { background:#EFF6FF; border:1px solid #93C5FD; color:#1D4ED8; }
+    .pill-green  { background:#ECFDF5; border:1px solid #6EE7B7; color:#065F46; }
+    .pill-orange { background:#FFF7ED; border:1px solid #FCA5A5; color:#9A3412; }
+    .pill-violet { background:#F5F3FF; border:1px solid #C4B5FD; color:#6B21A8; }
+    .pill-amber  { background:#FEFCE8; border:1px solid #FCD34D; color:#854D0E; }
+
+    /* ── FIX BADGE ── */
+    .fix-badge { display:inline-flex; align-items:center; gap:4px; font-size:7.5px; font-weight:700; color:#BE123C; background:#FFF1F2; border:1px solid #FCA5A5; border-radius:20px; padding:2px 7px; letter-spacing:0.3px; margin-left:4px; vertical-align:middle; }
+
+    /* ── SPECIAL BOXES ── */
+    .sensor-box { background:#EFF6FF; border:2px solid #93C5FD; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:108px; flex-shrink:0; }
+    .sensor-icon  { font-size:28px; margin-bottom:4px; }
+    .sensor-title { font-size:10px; font-weight:800; color:#1D4ED8; }
+    .sensor-sub   { font-size:8px; color:#3B82F6; font-family:'JetBrains Mono',monospace; margin-top:3px; line-height:1.4; }
+
+    .go-box   { background:linear-gradient(135deg,#EFF6FF,#F0F9FF); border:2px solid #7DD3FC; border-radius:12px; padding:12px 14px; min-width:148px; flex-shrink:0; }
+    .go-title { font-size:10.5px; font-weight:900; color:#0369A1; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
+    .go-item  { font-size:8px; color:#0284C7; font-family:'JetBrains Mono',monospace; padding:1.5px 0; }
+
+    .feat-outer  { background:#F8FBFF; border:1.5px dashed #93C5FD; border-radius:12px; padding:12px 14px; flex:1; }
+    .feat-title  { font-size:9px; font-weight:800; color:#1D4ED8; margin-bottom:8px; letter-spacing:0.5px; }
+
+    .engine-box   { background:linear-gradient(135deg,#FFF7ED,#FFFBF5); border:2.5px solid #FB923C; border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:148px; flex-shrink:0; box-shadow:0 4px 16px rgba(251,146,60,0.15); }
+    .engine-icon  { font-size:26px; margin-bottom:4px; }
+    .engine-title { font-size:11px; font-weight:900; color:#9A3412; line-height:1.3; }
+    .engine-sub   { font-size:8px; color:#C2410C; margin-top:3px; font-style:italic; }
+
+    .guard-box   { background:#FFFBF5; border:1.5px solid #FED7AA; border-radius:11px; padding:10px 12px; flex:1; display:flex; flex-direction:column; gap:6px; }
+    .guard-title { font-size:9px; font-weight:800; color:#9A3412; margin-bottom:2px; letter-spacing:0.5px; }
+
+    .db-box   { background:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:11px; padding:10px 12px; min-width:142px; flex-shrink:0; }
+    .db-title { font-size:9px; font-weight:800; color:#475569; margin-bottom:7px; letter-spacing:0.5px; }
+    .db-item  { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+    .db-name  { font-size:9px; font-weight:700; color:#1E293B; }
+    .db-sub   { font-size:8px; color:#64748B; }
+
+    .dash-box   { background:linear-gradient(135deg,#F5F3FF,#FAF5FF); border:2px solid #A78BFA; border-radius:14px; padding:13px 15px; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:148px; flex-shrink:0; box-shadow:0 4px 16px rgba(139,92,246,0.12); }
+    .dash-icon  { font-size:26px; margin-bottom:4px; }
+    .dash-title { font-size:11px; font-weight:900; color:#6B21A8; }
+    .dash-sub   { font-size:8px; color:#7C3AED; margin-top:2px; font-family:'JetBrains Mono',monospace; }
+
+    .out-circles { display:flex; gap:12px; align-items:center; justify-content:center; }
+    .out-circle  { display:flex; flex-direction:column; align-items:center; gap:5px; }
+    .out-circle-ring { width:74px; height:74px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:2.5px solid; }
+    .ring-blue   { border-color:#3B82F6; background:#EFF6FF; }
+    .ring-amber  { border-color:#F59E0B; background:#FEFCE8; }
+    .ring-green  { border-color:#10B981; background:#ECFDF5; }
+    .out-circle-icon  { font-size:18px; }
+    .out-circle-label { font-size:8.5px; font-weight:800; color:#1E293B; line-height:1.2; }
+    .out-circle-name  { font-size:8.5px; font-weight:700; color:#475569; text-align:center; }
+    .validated-lbl    { font-size:8px; font-weight:700; color:#64748B; text-align:center; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+
+    .hflow { display:flex; align-items:center; gap:0; }
+
+    /* ── FOOTER ── */
+    .footer { background:#FFFFFF; border-top:1.5px solid #E2E8F0; padding:10px 44px; display:flex; justify-content:space-between; align-items:center; }
+    .footer-left { font-size:9px; color:#94A3B8; }
+    .footer-right { display:flex; gap:8px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-eyebrow">SIH 2026 · PS-ID 26073 · Architecture Diagram · Corrected</div>
+    <div class="header-title">SkyGuard <span>AI</span> — Autonomous AWS Fault Detection &amp; Self-Healing System</div>
+    <div class="header-sub">Intelligent Real-Time Anomaly Detection for Automatic Weather Stations · Ministry of Earth Sciences (MoES / IMD)</div>
+  </div>
+  <div class="header-badges">
+    <div class="hbadge hbadge-green">
+      <div class="hbadge-lbl" style="color:#059669;">Organization</div>
+      <div class="hbadge-name">MoES / IMD</div>
+    </div>
+    <div class="hbadge hbadge-blue">
+      <div class="hbadge-lbl" style="color:#2563EB;">Smart India Hackathon</div>
+      <div class="hbadge-name">SIH 2026</div>
+    </div>
+  </div>
+</div>
+
+<div class="canvas">
+
+<!-- ══════════ TIER 1: Data Pipeline & Storage ══════════ -->
+<div class="tier-row t1">
+  <div class="tier-label">Tier 1</div>
+  <div class="tier-body">
+    <div class="tier-header">
+      ⚙️ Tier 1 — Data Pipeline &amp; Storage
+      <span style="margin-left:auto;font-size:8.5px;font-weight:600;color:#3B82F6;letter-spacing:0;">Go Backend &amp; Orchestrator</span>
+    </div>
+    <div class="hflow">
+
+      <!-- Sensor Intake -->
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="font-size:8px;font-weight:800;color:#64748B;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Sensor Intake</div>
+        <div class="sensor-box">
+          <div class="sensor-icon">📡</div>
+          <div class="sensor-title">AWS Sensor Input</div>
+          <div class="sensor-sub">UDP 5000 / TCP 5001<br/>(Live Data)</div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- Go Backend -->
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="font-size:8px;font-weight:800;color:#64748B;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Go Orchestrator</div>
+        <div class="go-box">
+          <div class="go-title"><span style="font-size:16px;">🐹</span> Go Backend</div>
+          <div class="go-item">▸ API · Pipeline Orchestration</div>
+          <div class="go-item">▸ SSE Stream (/api/stream :8080)</div>
+          <div class="go-item">▸ Ingestion &amp; Broadcast Logic</div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- Ingestion Pipeline + Feature Buffer -->
+      <div style="flex:1;">
+        <div style="font-size:8px;font-weight:800;color:#64748B;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Ingestion Pipeline</div>
+        <div class="feat-outer">
+          <div class="feat-title">Data Ingestion &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Feature Buffer <span class="fix-badge">✦ 14-D Fixed</span></div>
+          <div class="cols" style="gap:10px;">
+            <div class="col" style="gap:6px;">
+              <div class="box box-blue">
+                <div class="box-icon">🔢</div>
+                <div><div class="box-title">Decoding</div><div class="box-formula">0xAA 0x55 · Binary / CSV / JSON</div></div>
+              </div>
+              <div class="box box-blue">
+                <div class="box-icon">✅</div>
+                <div><div class="box-title">Checksum &amp; Validation</div><div class="box-formula">CRC-8 Frame Verification</div></div>
+              </div>
+              <div class="box box-blue">
+                <div class="box-icon">🔣</div>
+                <div><div class="box-title">Float32 Descaling</div><div class="box-formula">IEEE-754 → Physical Units</div></div>
+              </div>
+              <div class="box box-blue">
+                <div class="box-icon">{}</div>
+                <div><div class="box-title">JSON Serialization</div><div class="box-formula">Typed · Timestamped Struct</div></div>
+              </div>
+            </div>
+            <div class="col-divider"></div>
+            <div class="col" style="gap:6px;">
+              <div class="box box-sky">
+                <div class="box-icon">📊</div>
+                <div><div class="box-title">Rolling Buffer (N=15)</div><div class="box-formula">μ = Σxᵢ/N · σ² per channel</div></div>
+              </div>
+              <div class="box box-sky">
+                <div class="box-icon">📈</div>
+                <div><div class="box-title">Δx/Δt Gradients</div><div class="box-formula">dT/dt · dP/dt · dRH/dt</div></div>
+              </div>
+              <div class="box box-sky">
+                <div class="box-icon">🌙</div>
+                <div><div class="box-title">Cyclic Encodings + Dew Point</div><div class="box-formula">sin(2πh/24) · cos(2πh/24)<br/>dew_point · dew_point_spread</div></div>
+              </div>
+              <div style="margin-top:3px;text-align:center;">
+                <span class="pill pill-blue">✨ 14-D Feature Vector</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- Storage Subsystem -->
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="font-size:8px;font-weight:800;color:#64748B;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Storage Subsystem</div>
+        <div class="db-box" style="min-width:160px;">
+          <div class="db-title">🗄️ Database Layer</div>
+          <div class="db-item">
+            <div style="font-size:16px;">☁️</div>
+            <div><div class="db-name">NeonDB</div><div class="db-sub">(Cloud PostgreSQL)</div></div>
+          </div>
+          <div class="db-item">
+            <div style="font-size:16px;">🗄️</div>
+            <div>
+              <div class="db-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+                SQLite <span class="fix-badge" style="background:#0284c7;color:#fff;">✦ SQLite Local</span>
+              </div>
+              <div class="db-sub">(Local · skyguard_telemetry.db)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Connector 1→2 -->
+<div class="tier-connector">
+  <div class="tc-line"></div><div class="tc-arrow">▼</div>
+  <div class="tc-label">14-D Feature Vector</div>
+</div>
+
+<!-- ══════════ TIER 2: Detection & Intelligence ══════════ -->
+<div class="tier-row t2" style="margin-top:0;">
+  <div class="tier-label">Tier 2</div>
+  <div class="tier-body">
+    <div class="tier-header">
+      🔍 Tier 2 — Detection &amp; Intelligence
+      <span style="margin-left:auto;font-size:8.5px;font-weight:600;color:#15803D;letter-spacing:0;">Physical Guard + ML Guard + Spatial Guard</span>
+    </div>
+    <div class="cols" style="align-items:center;">
+
+      <!-- Physical Guard -->
+      <div class="guard-box" style="background:#FFFBF5;border-color:#FED7AA;">
+        <div class="guard-title">🌡️ Physical Guard &amp; Deterministic QC</div>
+        <div class="box box-amber">
+          <div class="box-icon">🌡️</div>
+          <div>
+            <div class="box-title">Physical Bounds QC</div>
+            <div class="box-formula">T ∈ [-40, 55] °C<br/>σ² &lt; 10⁻⁵ (freeze, N=10 ticks)</div>
+          </div>
+        </div>
+        <div class="box box-amber">
+          <div class="box-icon">🔥</div>
+          <div>
+            <div class="box-title">Magnus-Tetens Thermo</div>
+            <div class="box-formula">e_s(T) = 6.112×exp(17.67T/(T+243.5))<br/>|RH_rep − RH_theo| &gt; 35% → Flag</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line" style="width:16px;"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- Hybrid Anomaly Engine -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div class="engine-box">
+          <div class="engine-icon">⚡</div>
+          <div class="engine-title">Hybrid Anomaly<br/>Engine</div>
+          <div class="engine-sub">AnalyzeSpatial() · detector.go</div>
+        </div>
+        <div class="box" style="background:#FFF1F2;border-color:#FCA5A5;width:100%;">
+          <div class="box-icon">📡</div>
+          <div>
+            <div class="box-title">Real-time Scoring Transfer</div>
+            <div class="box-formula">SSE Broadcast · /api/stream · :8080</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line" style="width:16px;"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- ML Guard + Spatial Guard stacked -->
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+
+        <div class="guard-box" style="background:#ECFDF5;border-color:#6EE7B7;">
+          <div class="guard-title" style="color:#065F46;">🌲 ML Guard — Isolation Forest</div>
+          <div class="box box-green">
+            <div class="box-icon">🌲</div>
+            <div>
+              <div class="box-title">Isolation Forest ML <span class="fix-badge">✦ Formula Fixed</span></div>
+              <div class="box-formula">S(x,n) = 2^(−E[h(x)] / c(n))<br/>anomaly_model.pkl · :5050/predict<br/>SHAP attributions per feature</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spatial Guard — NEW -->
+        <div class="guard-box" style="background:#F0F9FF;border-color:#7DD3FC;">
+          <div class="guard-title" style="color:#0369A1;">🌍 Spatial Guard — Multi-Station Consensus <span class="fix-badge">✦ New — Was Missing</span></div>
+          <div class="box box-sky">
+            <div class="box-icon">🌐</div>
+            <div>
+              <div class="box-title">Cross-Station Spatial Validation</div>
+              <div class="box-formula">AWS-01 ↔ AWS-02 ↔ AWS-03 ↔ AWS-04<br/>Flag if |T_station − T̄_neighbours| &gt; 5°C<br/>&amp;&amp; σ²_spatial &lt; 4 (detector.go:236)</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Connector 2→3 -->
+<div class="tier-connector">
+  <div class="tc-line"></div><div class="tc-arrow">▼</div>
+  <div class="tc-label">Scoring · Severity · Anomaly Type</div>
+</div>
+
+<!-- ══════════ TIER 3: Intelligence & Action ══════════ -->
+<div class="tier-row t3" style="margin-top:0;">
+  <div class="tier-label">Tier 3</div>
+  <div class="tier-body">
+    <div class="tier-header">
+      🧠 Tier 3 — Intelligence &amp; Action
+      <span style="margin-left:auto;font-size:8.5px;font-weight:600;color:#C2410C;letter-spacing:0;">XAI Engine + Self-Healing Engine</span>
+    </div>
+    <div class="cols">
+
+      <!-- XAI Column -->
+      <div class="col">
+        <div class="col-head" style="color:#9A3412;">🔎 Explainable AI (XAI)</div>
+        <div class="box box-warm">
+          <div class="box-icon">📊</div>
+          <div><div class="box-title">SHAP Attribution</div><div class="box-formula">Feature % Contribution per channel<br/>(ShapAttributions map in Go)</div></div>
+        </div>
+        <div class="box box-warm">
+          <div class="box-icon">🏷️</div>
+          <div><div class="box-title">Severity Classifier</div><div class="box-formula">LOW / MEDIUM / HIGH<br/>Confidence: 0.0% – 100.0%</div></div>
+        </div>
+        <div class="box box-warm">
+          <div class="box-icon">📝</div>
+          <div><div class="box-title">Root-Cause Generator</div><div class="box-formula">Natural language text diagnostics<br/>+ Maintenance alert dispatch string</div></div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- Self-Healing Column -->
+      <div class="col">
+        <div class="col-head" style="color:#9A3412;">💊 Self-Healing Engine</div>
+        <div class="box box-warm">
+          <div class="box-icon">❤️</div>
+          <div><div class="box-title">Health Decay Meter</div><div class="box-formula">Sensor reliability 0–100%<br/>DegradationRisk · SensorHealth map</div></div>
+        </div>
+        <div class="box box-warm">
+          <div class="box-icon">🌊</div>
+          <div>
+            <div class="box-title">LWMA Imputation <span class="fix-badge">✦ Formula Fixed</span></div>
+            <div class="box-formula">x̂_t = Σ(i · xᵢ) / Σi<br/>(Linearly-Weighted Moving Avg, getImputedValue())</div>
+          </div>
+        </div>
+        <div class="box box-warm">
+          <div class="box-icon">💧</div>
+          <div><div class="box-title">Inverse Psychrometric</div><div class="box-formula">Physical estimation via Magnus eq.<br/>Recovers T_wet / RH from vapor equilibrium</div></div>
+        </div>
+        <div class="box box-warm">
+          <div class="box-icon">🎓</div>
+          <div><div class="box-title">Online Self-Learning</div><div class="box-formula">Update Baseline N=500 clean samples<br/>Recalibrate Isolation Forest threshold τ</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Connector 3→4 -->
+<div class="tier-connector">
+  <div class="tc-line"></div><div class="tc-arrow">▼</div>
+  <div class="tc-label">Validated Outputs</div>
+</div>
+
+<!-- ══════════ TIER 4 / Section 4: Presentation & Operations ══════════ -->
+<div class="tier-row t4" style="margin-top:0;">
+  <div class="tier-label">Tier 4</div>
+  <div class="tier-body">
+    <div class="tier-header">
+      🖥️ 4. Presentation &amp; Operations
+      <span style="margin-left:auto;font-size:8.5px;font-weight:600;color:#7C3AED;letter-spacing:0;">Next.js Dashboard (.exe)</span>
+    </div>
+    <div class="cols" style="align-items:center;">
+
+      <!-- Dashboard -->
+      <div class="dash-box">
+        <div class="dash-icon">🖥️</div>
+        <div class="dash-title">Next.js Dashboard</div>
+        <div class="dash-sub">AWS_SkyGuard_Station.exe</div>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;">
+          <div style="font-size:7.5px;color:#7C3AED;font-family:'JetBrains Mono',monospace;">▸ SSE Stream :8080</div>
+          <div style="font-size:7.5px;color:#7C3AED;font-family:'JetBrains Mono',monospace;">▸ 10 Parameter Cards</div>
+          <div style="font-size:7.5px;color:#7C3AED;font-family:'JetBrains Mono',monospace;">▸ SVG Compass Needle Dial</div>
+          <div style="font-size:7.5px;color:#7C3AED;font-family:'JetBrains Mono',monospace;">▸ Spectral Timeline Charts</div>
+          <div style="font-size:7.5px;color:#7C3AED;font-family:'JetBrains Mono',monospace;">▸ Data Logger &amp; Replay Hub</div>
+        </div>
+      </div>
+
+      <div class="arrow-h"><div class="arrow-h-line" style="width:36px;"></div><div class="arrow-h-head">▶</div></div>
+
+      <!-- Validated Output Circles -->
+      <div style="flex:1;">
+        <div class="validated-lbl">Validated Outputs</div>
+        <div class="out-circles">
+          <div class="out-circle">
+            <div class="out-circle-ring ring-blue">
+              <div class="out-circle-icon">📊</div>
+              <div class="out-circle-label">Live<br/>Gauges</div>
+            </div>
+            <div class="out-circle-name">Real-Time<br/>Parameter View</div>
+          </div>
+          <div class="out-circle">
+            <div class="out-circle-ring ring-amber">
+              <div class="out-circle-icon">⚠️</div>
+              <div class="out-circle-label">Fault<br/>Bench</div>
+            </div>
+            <div class="out-circle-name">AI Fault<br/>Injection &amp; Test</div>
+          </div>
+          <div class="out-circle">
+            <div class="out-circle-ring ring-green">
+              <div class="out-circle-icon">✨</div>
+              <div class="out-circle-label">Healed<br/>Stream</div>
+            </div>
+            <div class="out-circle-name">Self-Healed<br/>Data Output</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-divider" style="align-self:stretch;"></div>
+
+      <!-- Summary of fixes -->
+      <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
+        <div class="col-head" style="color:#6B21A8;">📋 Architectural Features</div>
+        <div class="box box-violet" style="padding:6px 9px;"><div><div class="box-title" style="font-size:8.5px;">① Local DB → SQLite Engine (skyguard_telemetry.db)</div></div></div>
+        <div class="box box-violet" style="padding:6px 9px;"><div><div class="box-title" style="font-size:8.5px;">② EWMA shown → actual LWMA code</div></div></div>
+        <div class="box box-violet" style="padding:6px 9px;"><div><div class="box-title" style="font-size:8.5px;">③ Feature Buffer → full 14-D listed</div></div></div>
+        <div class="box box-violet" style="padding:6px 9px;"><div><div class="box-title" style="font-size:8.5px;">④ IF Formula → 2^(−E[h(x)]/c(n))</div></div></div>
+        <div class="box box-violet" style="padding:6px 9px;"><div><div class="box-title" style="font-size:8.5px;">⑤ Spatial Guard added (was missing)</div></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- /canvas -->
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-left">SkyGuard AI | Intelligent AWS Anomaly Detection &amp; Self-Healing | SIH 2026 | PS-26073 | Ministry of Earth Sciences</div>
+  <div class="footer-right">
+    <span class="pill pill-blue">Go · Python 3.11 · Next.js</span>
+    <span class="pill pill-green">Isolation Forest · SHAP</span>
+    <span class="pill pill-orange">NeonDB · SQLite Local DB</span>
+    <span class="pill pill-violet">Edge .exe · Offline-First</span>
+    <span class="pill pill-amber">MoES / IMD Aligned</span>
+  </div>
+</div>
+
+</body>
+</html>

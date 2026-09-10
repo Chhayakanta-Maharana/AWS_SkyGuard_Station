@@ -101,6 +101,7 @@ flowchart TD
 
 > **Pipeline Overview:** *SkyGuard AI processes Automatic Weather Station telemetry through a six-phase end-to-end pipeline — from raw binary/UDP sensor signals to explainable root causes, self-healed data streams, and native desktop/edge deployments.*
 
+
 ---
 
 ## 3. Core Meteorological Parameters (SIH Specification)

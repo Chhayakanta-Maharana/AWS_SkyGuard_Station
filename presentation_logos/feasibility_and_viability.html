@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyGuard AI — Feasibility and Viability (SIH 2026)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    background: #e2e8f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* 16:9 Presentation Canvas */
+  .slide-canvas {
+    width: 1366px;
+    height: 768px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+    padding: 24px 36px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Header Section */
+  .slide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .team-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 18px;
+    border: 2px solid #2563eb;
+    border-radius: 24px;
+    color: #1e3a8a;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: 0.5px;
+  }
+
+  .slide-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .sih-header-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sih-logo-img {
+    height: 48px;
+  }
+
+  /* Main Grid Layout matching Reference Slide */
+  .grid-container {
+    display: grid;
+    grid-template-columns: 1.35fr 0.95fr 1.15fr;
+    grid-template-rows: 1.25fr 1fr;
+    gap: 18px 20px;
+    flex: 1;
+  }
+
+  /* Card Base Styles */
+  .card-box {
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-title-pill {
+    align-self: flex-start;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* 1. Risk Assessment Column (Spans top-left and mid-left) */
+  .risk-section {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-main-heading {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 8px;
+    position: relative;
+    display: inline-block;
+  }
+  .section-main-heading::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: #ef4444;
+    border-radius: 2px;
+    margin-top: 2px;
+  }
+
+  .risk-rows-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .risk-row {
+    display: grid;
+    grid-template-columns: 1fr 30px 1.2fr 130px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .problem-card {
+    background: #2563eb;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+  }
+  .problem-card .prob-tag {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.85;
+  }
+  .problem-card .prob-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .problem-card .prob-desc {
+    font-size: 9.5px;
+    opacity: 0.9;
+    margin-top: 1px;
+  }
+
+  .arrow-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+
+  .solution-card {
+    background: #059669;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+  }
+  .solution-card .sol-tag {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.85;
+  }
+  .solution-card .sol-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .solution-card .sol-desc {
+    font-size: 9.5px;
+    opacity: 0.92;
+    margin-top: 1px;
+  }
+
+  .benchmark-badge {
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  }
+  .benchmark-badge .b-name {
+    font-size: 11px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+  }
+  .benchmark-badge .b-sub {
+    font-size: 8px;
+    font-weight: 700;
+    color: #2563eb;
+    text-transform: uppercase;
+  }
+
+  /* 2. Technical Feasibility (Top-Right) */
+  .tech-feasibility-card {
+    grid-column: 3;
+    grid-row: 1;
+    background: #93c5fd; /* Soft professional blue background matching reference */
+    border-radius: 16px;
+  }
+  .tech-feasibility-card .card-title-pill {
+    background: #1e3a8a;
+    color: #ffffff;
+  }
+
+  .bullet-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .bullet-list li {
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: #0f172a;
+    display: flex;
+    gap: 6px;
+  }
+  .bullet-list li::before {
+    content: "•";
+    color: #1e3a8a;
+    font-weight: 900;
+    font-size: 14px;
+  }
+  .bullet-list li b {
+    font-weight: 800;
+    color: #091e42;
+  }
+
+  /* 3. Resource Requirements (Bottom-Left) */
+  .resource-card {
+    grid-column: 1;
+    grid-row: 2;
+    background: #bfdbfe; /* Accent blue tint */
+    border-radius: 16px;
+  }
+  .resource-card .card-title-pill {
+    background: #1e40af;
+    color: #ffffff;
+  }
+
+  /* 4. Proven Frameworks (Bottom-Middle) */
+  .frameworks-card {
+    grid-column: 2;
+    grid-row: 2;
+    background: #ffffff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+  }
+  .frameworks-card .framework-heading {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f172a;
+    border-bottom: 2px solid #ef4444;
+    padding-bottom: 2px;
+  }
+
+  .framework-logos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .fw-logo-pill {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #1e293b;
+  }
+  .fw-logo-pill .fw-sub {
+    font-size: 7.5px;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  /* 5. Economic Approach (Bottom-Right) */
+  .economic-card {
+    grid-column: 3;
+    grid-row: 2;
+    background: #93c5fd;
+    border-radius: 16px;
+  }
+  .economic-card .card-title-pill {
+    background: #1e3a8a;
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+
+<div class="slide-canvas">
+
+  <!-- Header -->
+  <div class="slide-header">
+    <div class="team-badge">Arcade</div>
+    <div class="slide-title">FEASIBILITY AND VIABILITY</div>
+    <div class="sih-header-logo">
+      <!-- Embedded SIH Brain-Bulb Logo Style -->
+      <svg width="46" height="46" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+        <path d="M50 15 C30 15 25 35 25 50 C25 65 35 75 45 80 L45 85 L55 85 L55 80 C65 75 75 65 75 50 C75 35 70 15 50 15 Z" fill="none" stroke="#ea580c" stroke-width="4"/>
+        <path d="M50 15 L50 85" stroke="#16a34a" stroke-width="4"/>
+        <circle cx="50" cy="50" r="10" fill="#2563eb"/>
+      </svg>
+      <div style="font-size: 11px; font-weight: 900; color: #1e293b; line-height: 1.1;">
+        SMART INDIA<br><span style="color:#2563eb;">HACKATHON</span><br>2026
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid-container">
+
+    <!-- 1. Risk Assessment and Mitigation (Spans across Col 1 & 2) -->
+    <div class="risk-section">
+      <div class="section-main-heading">Risk assessment and mitigation</div>
+
+      <div class="risk-rows-container">
+        
+        <!-- Row 1 -->
+        <div class="risk-row">
+          <div class="problem-card">
+            <div>⚠️</div>
+            <div>
+              <div class="prob-tag">Problem 1</div>
+              <div class="prob-title">Sensor Drift &amp; Flatlining</div>
+              <div class="prob-desc">Gradual calibration loss &amp; frozen values bypass basic range limits.</div>
+            </div>
+          </div>
+          <div class="arrow-icon">➔</div>
+          <div class="solution-card">
+            <div>⚙️</div>
+            <div>
+              <div class="sol-tag">Solution</div>
+              <div class="sol-title">Dynamic ΔT/Δt + Rolling Var (σ² &lt; 10⁻⁵)</div>
+              <div class="sol-desc">Real-time temporal rate-of-change + invariant flatline buffer.</div>
+            </div>
+          </div>
+          <div class="benchmark-badge" style="border-color:#0284c7;">
+            <div class="b-name" style="color:#0369a1;">WMO-No. 8</div>
+            <div class="b-sub">AWS QC Guide</div>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="risk-row">
+          <div class="problem-card">
+            <div>⚠️</div>
+            <div>
+              <div class="prob-tag">Problem 2</div>
+              <div class="prob-title">False Alarms in Storms</div>
+              <div class="prob-desc">Extreme weather (cloudbursts, sudden drops) flagged as faults.</div>
+            </div>
+          </div>
+          <div class="arrow-icon">➔</div>
+          <div class="solution-card">
+            <div>⚙️</div>
+            <div>
+              <div class="sol-tag">Solution</div>
+              <div class="sol-title">Magnus-Tetens Psychrometry</div>
+              <div class="sol-desc">Physical thermodynamic coupling (T_dry, T_wet, P, RH) sanity checks.</div>
+            </div>
+          </div>
+          <div class="benchmark-badge" style="border-color:#059669;">
+            <div class="b-name" style="color:#047857;">MoES / IMD</div>
+            <div class="b-sub">Thermo Standard</div>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="risk-row">
+          <div class="problem-card">
+            <div>⚠️</div>
+            <div>
+              <div class="prob-tag">Problem 3</div>
+              <div class="prob-title">Remote Network Blackout</div>
+              <div class="prob-desc">Telemetry data loss during satellite / GSM outages on mountains.</div>
+            </div>
+          </div>
+          <div class="arrow-icon">➔</div>
+          <div class="solution-card">
+            <div>⚙️</div>
+            <div>
+              <div class="sol-tag">Solution</div>
+              <div class="sol-title">Edge Self-Healing &amp; Ring Buffer</div>
+              <div class="sol-desc">Dual EWMA &amp; inverse psychrometric imputation with local logging.</div>
+            </div>
+          </div>
+          <div class="benchmark-badge" style="border-color:#4f46e5;">
+            <div class="b-name" style="color:#4338ca;">IEEE 754</div>
+            <div class="b-sub">Edge Standalone</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. Technical Feasibility (Top-Right) -->
+    <div class="card-box tech-feasibility-card">
+      <div class="card-title-pill">Technical feasibility</div>
+      <ul class="bullet-list">
+        <li><b>Sub-Millisecond Go Engine:</b> High-throughput streaming pipeline ingesting raw 0xAA 0x55 binary UDP/TCP packets under 1ms.</li>
+        <li><b>Hybrid Physics + AI Architecture:</b> Multi-stage pipeline fusing physical climatological limits, 3-Sigma Z-Scores, and Isolation Forest.</li>
+        <li><b>Explainable AI (XAI) Engine:</b> Generates instant plain-text root-cause diagnostics with 0–100% confidence metrics.</li>
+        <li><b>Standalone Edge Deployment:</b> Compiles into a single self-contained Windows executable with zero external database dependencies.</li>
+      </ul>
+    </div>
+    <!-- Key Performance Benchmarks Bar -->
+<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin: 10px 0;">
+  <div style="background:#ffffff; border:1.5px solid #93c5fd; border-radius:10px; padding:6px 10px; text-align:center; box-shadow:0 2px 6px rgba(37,99,235,0.06);">
+    <div style="font-size:12px; font-weight:800; color:#0f172a;">⚡ &lt; 0.4 ms Latency</div>
+    <div style="font-size:8.5px; font-weight:700; color:#2563eb; text-transform:uppercase; margin-top:2px;">Sub-Millisecond Ingest</div>
+  </div>
+  <div style="background:#ffffff; border:1.5px solid #6ee7b7; border-radius:10px; padding:6px 10px; text-align:center; box-shadow:0 2px 6px rgba(16,185,129,0.06);">
+    <div style="font-size:12px; font-weight:800; color:#0f172a;">🎯 99.52% Recall</div>
+    <div style="font-size:8.5px; font-weight:700; color:#059669; text-transform:uppercase; margin-top:2px;">Zero Anomaly Leaks</div>
+  </div>
+  <div style="background:#ffffff; border:1.5px solid #fcd34d; border-radius:10px; padding:6px 10px; text-align:center; box-shadow:0 2px 6px rgba(245,158,11,0.06);">
+    <div style="font-size:12px; font-weight:800; color:#0f172a;">🔋 &lt; 15 mW Power</div>
+    <div style="font-size:8.5px; font-weight:700; color:#d97706; text-transform:uppercase; margin-top:2px;">ESP32 Solar Mast Ready</div>
+  </div>
+  <div style="background:#ffffff; border:1.5px solid #c4b5fd; border-radius:10px; padding:6px 10px; text-align:center; box-shadow:0 2px 6px rgba(139,92,246,0.06);">
+    <div style="font-size:12px; font-weight:800; color:#0f172a;">💾 100% Offline</div>
+    <div style="font-size:8.5px; font-weight:700; color:#7c3aed; text-transform:uppercase; margin-top:2px;">SQLite Local Storage</div>
+  </div>
+</div>
+
+    <!-- 3. Resource Requirements (Bottom-Left) -->
+    <div class="card-box resource-card">
+      <div class="card-title-pill">Resource Requirements</div>
+      <ul class="bullet-list">
+        <li><b>Compute Hardware:</b> Edge Mini-PC (Intel N100 / RPi 4 / Industrial Box) with <b>&lt; 50 MB RAM</b> &amp; <b>&lt; 2% CPU usage</b>.</li>
+        <li><b>Sensor Compatibility:</b> Standard RS-485 / Modbus RTU / TCP interfaces for PT100 (Temp), Barometers, and Capacitive RH probes.</li>
+        <li><b>Software &amp; UI Stack:</b> Go 1.22 Runtime + Next.js 19 local dashboard communicating via Server-Sent Events (SSE :8080).</li>
+        <li><b>Zero Cloud Storage:</b> Lightweight local circular ring buffer with optional local CSV/SQLite persistent logs.</li>
+      </ul>
+    </div>
+
+    <!-- 4. Proven Frameworks (Bottom-Middle) -->
+    <div class="frameworks-card">
+      <div class="framework-heading">Proven Frameworks</div>
+      <div class="framework-logos-grid">
+        <div class="fw-logo-pill">
+          <span style="font-size: 15px;">🐹</span>
+          <span>Golang 1.22</span>
+          <span class="fw-sub">Streaming Engine</span>
+        </div>
+        <div class="fw-logo-pill">
+          <span style="font-size: 15px;">⚛️</span>
+          <span>Next.js 19</span>
+          <span class="fw-sub">Desktop UI / SSE</span>
+        </div>
+        <div class="fw-logo-pill">
+          <span style="font-size: 15px;">🌲</span>
+          <span>Isolation Forest</span>
+          <span class="fw-sub">Scikit-Learn ML</span>
+        </div>
+        <div class="fw-logo-pill">
+          <span style="font-size: 15px;">🌡️</span>
+          <span>Magnus-Tetens</span>
+          <span class="fw-sub">MoES Thermo Spec</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Economic Approach (Bottom-Right) -->
+    <div class="card-box economic-card">
+      <div class="card-title-pill">Economic Approach</div>
+      <ul class="bullet-list">
+        <li><b>Zero Cloud Operational Costs:</b> Runs 100% on-edge at station level—eliminates costly cloud GPUs and recurring SaaS licenses.</li>
+        <li><b>70% Field Visit Cost Reduction:</b> Pinpoint XAI diagnostics distinguish real sensor failure from dust/transient errors before dispatching technicians.</li>
+        <li><b>NWP Model Data Protection:</b> Real-time self-healing prevents bad sensor data from corrupting critical Cyclone &amp; Flood forecasting models.</li>
+        <li><b>Plug-and-Play Scale:</b> Readily deployable across 1,000+ existing IMD/MoES AWS stations with zero hardware overhaul.</li>
+      </ul>
+    </div>
+
+    
+  </div>
+
+</div>
+
+</body>
+</html>

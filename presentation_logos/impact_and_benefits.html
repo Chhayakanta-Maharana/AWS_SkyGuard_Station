@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  }
+  body {
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 1350px;
+    height: 660px;
+    padding: 20px 30px;
+  }
+  .container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    gap: 25px;
+    align-items: center;
+  }
+  
+  /* Left Section: Circular Diagram */
+  .diagram-section {
+    flex: 1.35;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .circle-track {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    border: 2px dashed #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Center Badge */
+  .center-badge {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    display: flex;
+    position: relative;
+    background: #ffffff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    overflow: hidden;
+    border: 3px solid #0f172a;
+  }
+  .half-left {
+    flex: 1;
+    background: #0f172a;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .half-right {
+    flex: 1;
+    background: #f8fafc;
+    color: #2563eb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 2px;
+    border-left: 2px solid #0f172a;
+  }
+
+  /* Items Layout */
+  .items-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 520px;
+    z-index: 2;
+  }
+  .items-left {
+    width: 250px;
+    text-align: right;
+  }
+  .items-right {
+    width: 250px;
+    text-align: left;
+  }
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .item-row.right {
+    flex-direction: row-reverse;
+  }
+
+  .node-num {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .node-left {
+    background: #e2e8f0;
+    color: #0f172a;
+    border: 2px solid #64748b;
+  }
+  .node-right {
+    background: #3b82f6;
+    color: #ffffff;
+    border: 2px solid #1d4ed8;
+  }
+
+  .text-box h4 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 2px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .items-right .text-box h4 {
+    color: #0f172a;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  .text-box p {
+    font-size: 11.5px;
+    color: #334155;
+    line-height: 1.35;
+  }
+  .highlight {
+    font-weight: 700;
+    color: #0284c7;
+  }
+
+  /* Right Section: Comparison Bar Chart */
+  .chart-section {
+    flex: 0.95;
+    height: 520px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+  .chart-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .chart-subtitle {
+    font-size: 11.5px;
+    color: #64748b;
+    text-align: center;
+    margin-top: -6px;
+    margin-bottom: 10px;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot-gray { width: 12px; height: 12px; background: #94a3b8; border-radius: 3px; }
+  .dot-blue { width: 12px; height: 12px; background: #2563eb; border-radius: 3px; }
+
+  .bar-group {
+    margin-bottom: 10px;
+  }
+  .bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 3px;
+  }
+  .bar-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .bar {
+    height: 14px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .bar-current {
+    background: #94a3b8;
+  }
+  .bar-skyguard {
+    background: #2563eb;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+  }
+
+  .bottom-summary-card {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-top: 6px;
+  }
+  .bottom-summary-card p {
+    font-size: 11px;
+    color: #1e40af;
+    line-height: 1.35;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Left Side: Circular Diagram -->
+  <div class="diagram-section">
+    <!-- Left 4 Items -->
+    <div class="items-column items-left">
+      <div class="item-row">
+        <div class="text-box">
+          <h4>99.52% Anomaly Recall</h4>
+          <p>Catches spikes, flatlines & drift in <span class="highlight">&lt; 0.4 ms</span> with zero data loss.</p>
+        </div>
+        <div class="node-num node-left">1</div>
+      </div>
+
+      <div class="item-row">
+        <div class="text-box">
+          <h4>Zero False Alarms</h4>
+          <p>Spatial consensus prevents misflagging storms as sensor hardware faults.</p>
+        </div>
+        <div class="node-num node-left">2</div>
+      </div>
+
+      <div class="item-row">
+        <div class="text-box">
+          <h4>90% Faster Triage</h4>
+          <p>SHAP XAI diagnosis gives plain-English root causes to field engineers.</p>
+        </div>
+        <div class="node-num node-left">3</div>
+      </div>
+
+      <div class="item-row">
+        <div class="text-box">
+          <h4>WMO Data Integrity</h4>
+          <p>Self-healing feeds clean data into NWP weather & cyclone models.</p>
+        </div>
+        <div class="node-num node-left">4</div>
+      </div>
+    </div>
+
+    <!-- Center Track with Split Badge -->
+    <div class="circle-track">
+      <div class="center-badge">
+        <div class="half-left">IMPACTS</div>
+        <div class="half-right">BENEFITS</div>
+      </div>
+    </div>
+
+    <!-- Right 4 Items -->
+    <div class="items-column items-right">
+      <div class="item-row right">
+        <div class="text-box">
+          <h4>National Safety</h4>
+          <p>Accurate early warnings protect lives & crops from flash floods and cyclones.</p>
+        </div>
+        <div class="node-num node-right">1</div>
+      </div>
+
+      <div class="item-row right">
+        <div class="text-box">
+          <h4>Economic Savings</h4>
+          <p>Saves ₹ Crores annually in unnecessary field trips to remote mountain masts.</p>
+        </div>
+        <div class="node-num node-right">2</div>
+      </div>
+
+      <div class="item-row right">
+        <div class="text-box">
+          <h4>Climate Resilience</h4>
+          <p>Guarantees uncorrupted historical climate records for long-term policy.</p>
+        </div>
+        <div class="node-num node-right">3</div>
+      </div>
+
+      <div class="item-row right">
+        <div class="text-box">
+          <h4>Self-Reliant Tech</h4>
+          <p>100% indigenous edge AI aligned with India's <b>Mission Mausam</b> & MoES.</p>
+        </div>
+        <div class="node-num node-right">4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Comparison Chart -->
+  <div class="chart-section">
+    <div>
+      <div class="chart-title">AWS STATION PERFORMANCE IMPACT</div>
+      <div class="chart-subtitle">Current Manual/Rule-based vs SkyGuard AI System</div>
+      <div class="legend">
+        <div class="legend-item"><div class="dot-gray"></div> Traditional IMD Baseline</div>
+        <div class="legend-item"><div class="dot-blue"></div> SkyGuard AI Powered</div>
+      </div>
+    </div>
+
+    <!-- Metric 1 -->
+    <div class="bar-group">
+      <div class="bar-label"><span>Fault Detection Delay</span><span>24 hrs &rarr; &lt; 0.4 ms</span></div>
+      <div class="bar-pair">
+        <div class="bar bar-current" style="width: 90%;">Traditional: 24 - 48 Hours Delay</div>
+        <div class="bar bar-skyguard" style="width: 15%;">SkyGuard: &lt; 0.4 ms (Real-Time)</div>
+      </div>
+    </div>
+
+    <!-- Metric 2 -->
+    <div class="bar-group">
+      <div class="bar-label"><span>Data Loss / Gaps</span><span>18% &rarr; &lt; 0.5%</span></div>
+      <div class="bar-pair">
+        <div class="bar bar-current" style="width: 75%;">Traditional: 15 - 20% Unusable Data</div>
+        <div class="bar bar-skyguard" style="width: 10%;">SkyGuard: &lt; 0.5% (Self-Healed)</div>
+      </div>
+    </div>
+
+    <!-- Metric 3 -->
+    <div class="bar-group">
+      <div class="bar-label"><span>False Alarm Rate</span><span>28% &rarr; 0%</span></div>
+      <div class="bar-pair">
+        <div class="bar bar-current" style="width: 65%;">Traditional: ~28% False Flags</div>
+        <div class="bar bar-skyguard" style="width: 8%;">SkyGuard: 0% (Spatial Grid Consensus)</div>
+      </div>
+    </div>
+
+    <!-- Metric 4 -->
+    <div class="bar-group">
+      <div class="bar-label"><span>Maintenance Site Trips</span><span>65% Reduction</span></div>
+      <div class="bar-pair">
+        <div class="bar bar-current" style="width: 85%;">Traditional: 100% Physical Visits</div>
+        <div class="bar bar-skyguard" style="width: 35%;">SkyGuard: 35% (XAI Remote Triage)</div>
+      </div>
+    </div>
+
+    <!-- Bottom Highlight -->
+    <div class="bottom-summary-card">
+      <p>🎯 <b>Key Takeaway:</b> Delivers uncorrupted meteorological feeds to IMD NWP forecasting models while slashing field maintenance overhead by &gt;60%.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

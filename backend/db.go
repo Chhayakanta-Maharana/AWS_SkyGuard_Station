@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	_ "modernc.org/sqlite"
 )
 
 type TelemetryRecord struct {
@@ -40,7 +41,7 @@ type ExternalDBConfig struct {
 type DatabaseManager struct {
 	mu         sync.Mutex
 	dbPath     string
-	records    []TelemetryRecord
+	localDB    *sql.DB
 	config     ExternalDBConfig
 	neonDB     *sql.DB
 	neonConnOK bool
@@ -54,8 +55,7 @@ func NewDatabaseManager(projectDir string) *DatabaseManager {
 	dbFile := filepath.Join(dbDir, "skyguard_telemetry.db")
 
 	dm := &DatabaseManager{
-		dbPath:  dbFile,
-		records: make([]TelemetryRecord, 0),
+		dbPath: dbFile,
 		config: ExternalDBConfig{
 			Enabled:       true,
 			Provider:      "NEON_POSTGRES",
@@ -64,11 +64,56 @@ func NewDatabaseManager(projectDir string) *DatabaseManager {
 		},
 	}
 
-	dm.loadRecords()
+	dm.initLocalSQLite()
 	dm.loadConfig()
 	dm.initNeonPostgreSQL()
 
 	return dm
+}
+
+func (dm *DatabaseManager) initLocalSQLite() {
+	db, err := sql.Open("sqlite", dm.dbPath)
+	if err != nil {
+		log.Printf("[!] SQLite Local DB Open Error: %v", err)
+		return
+	}
+
+	// SQLite settings for high performance and concurrency
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
+	// Enable WAL mode for fast writes without blocking reads
+	_, _ = db.Exec("PRAGMA journal_mode=WAL;")
+	_, _ = db.Exec("PRAGMA synchronous=NORMAL;")
+
+	createTableSQL := `
+	CREATE TABLE IF NOT EXISTS telemetry_logs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp INTEGER NOT NULL,
+		station_id TEXT,
+		temperature REAL,
+		pressure REAL,
+		humidity REAL,
+		is_anomaly INTEGER,
+		anomaly_score REAL,
+		anomaly_type TEXT,
+		severity TEXT,
+		confidence_category TEXT,
+		explanation TEXT,
+		shap_attributions TEXT,
+		sensor_health TEXT,
+		created_at TEXT
+	);
+	CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_logs(timestamp);
+	`
+
+	if _, err := db.Exec(createTableSQL); err != nil {
+		log.Printf("[-] Failed to create table in SQLite DB: %v", err)
+		return
+	}
+
+	dm.localDB = db
+	log.Printf("✓ Local SQLite DB initialized at: %s (Table 'telemetry_logs' ready)", dm.dbPath)
 }
 
 func (dm *DatabaseManager) initNeonPostgreSQL() {
@@ -127,42 +172,46 @@ func (dm *DatabaseManager) initNeonPostgreSQL() {
 	}()
 }
 
-func (dm *DatabaseManager) loadRecords() {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
-
-	if _, err := os.Stat(dm.dbPath); os.IsNotExist(err) {
-		return
-	}
-
-	data, err := os.ReadFile(dm.dbPath)
-	if err != nil || len(data) == 0 {
-		return
-	}
-
-	var recs []TelemetryRecord
-	if err := json.Unmarshal(data, &recs); err == nil {
-		dm.records = recs
-		log.Printf("✓ Local Offline DB (%s) loaded %d records.", filepath.Base(dm.dbPath), len(dm.records))
-	}
-}
-
-func (dm *DatabaseManager) saveRecordsLocked() {
-	data, err := json.MarshalIndent(dm.records, "", "  ")
-	if err != nil {
-		return
-	}
-	os.WriteFile(dm.dbPath, data, 0644)
-}
-
 func (dm *DatabaseManager) InsertRecord(res AnomalyResult, temp, press, hum float64) TelemetryRecord {
-	dm.mu.Lock()
-
-	id := int64(len(dm.records) + 1)
 	now := time.Now()
+	createdAt := now.UTC().Format(time.RFC3339)
+	shapJSON, _ := json.Marshal(res.ShapAttributions)
+	healthJSON, _ := json.Marshal(res.SensorHealth)
+
+	isAnomalyInt := 0
+	if res.IsAnomaly {
+		isAnomalyInt = 1
+	}
+
+	var insertedID int64
+
+	dm.mu.Lock()
+	if dm.localDB != nil {
+		insertSQL := `
+		INSERT INTO telemetry_logs (
+			timestamp, station_id, temperature, pressure, humidity,
+			is_anomaly, anomaly_score, anomaly_type, severity,
+			confidence_category, explanation, shap_attributions, sensor_health, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`
+		resExec, err := dm.localDB.Exec(insertSQL,
+			now.Unix(), res.StationID, temp, press, hum,
+			isAnomalyInt, res.Confidence, res.AnomalyType, res.Severity,
+			res.Severity, res.XAIExplanation, string(shapJSON), string(healthJSON), createdAt,
+		)
+		if err != nil {
+			log.Printf("[-] SQLite Insert Error: %v", err)
+		} else {
+			insertedID, _ = resExec.LastInsertId()
+		}
+	}
+
+	neonOK := dm.neonConnOK
+	neonDB := dm.neonDB
+	dm.mu.Unlock()
 
 	rec := TelemetryRecord{
-		ID:                 id,
+		ID:                 insertedID,
 		Timestamp:          now.Unix(),
 		StationID:          res.StationID,
 		Temperature:        temp,
@@ -176,24 +225,13 @@ func (dm *DatabaseManager) InsertRecord(res AnomalyResult, temp, press, hum floa
 		Explanation:        res.XAIExplanation,
 		ShapAttributions:   res.ShapAttributions,
 		SensorHealth:       res.SensorHealth,
-		CreatedAt:          now.UTC().Format(time.RFC3339),
+		CreatedAt:          createdAt,
 	}
-
-	dm.records = append(dm.records, rec)
-	if len(dm.records) > 10000 {
-		dm.records = dm.records[len(dm.records)-10000:]
-	}
-
-	dm.saveRecordsLocked()
-
-	neonOK := dm.neonConnOK
-	neonDB := dm.neonDB
-	dm.mu.Unlock()
 
 	if neonOK && neonDB != nil {
 		go func(r TelemetryRecord) {
-			shapJSON, _ := json.Marshal(r.ShapAttributions)
-			healthJSON, _ := json.Marshal(r.SensorHealth)
+			sJSON, _ := json.Marshal(r.ShapAttributions)
+			hJSON, _ := json.Marshal(r.SensorHealth)
 
 			insertSQL := `
 			INSERT INTO telemetry_logs (
@@ -205,7 +243,7 @@ func (dm *DatabaseManager) InsertRecord(res AnomalyResult, temp, press, hum floa
 			_, err := neonDB.Exec(insertSQL,
 				r.Timestamp, r.StationID, r.Temperature, r.Pressure, r.Humidity,
 				r.IsAnomaly, r.AnomalyScore, r.AnomalyType, r.Severity,
-				r.ConfidenceCategory, r.Explanation, string(shapJSON), string(healthJSON),
+				r.ConfidenceCategory, r.Explanation, string(sJSON), string(hJSON),
 			)
 
 			if err == nil {
@@ -221,20 +259,38 @@ func (dm *DatabaseManager) InsertRecord(res AnomalyResult, temp, press, hum floa
 
 func (dm *DatabaseManager) SyncAllToCloud() (int, error) {
 	dm.mu.Lock()
-	recs := make([]TelemetryRecord, len(dm.records))
-	copy(recs, dm.records)
 	neonOK := dm.neonConnOK
 	neonDB := dm.neonDB
+	localDB := dm.localDB
 	dm.mu.Unlock()
 
-	if !neonOK || neonDB == nil {
+	if !neonOK || neonDB == nil || localDB == nil {
 		return 0, nil
 	}
 
+	rows, err := localDB.Query(`
+		SELECT timestamp, station_id, temperature, pressure, humidity,
+		       is_anomaly, anomaly_score, anomaly_type, severity,
+		       confidence_category, explanation, shap_attributions, sensor_health
+		FROM telemetry_logs
+		ORDER BY id ASC
+	`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
 	synced := 0
-	for _, r := range recs {
-		shapJSON, _ := json.Marshal(r.ShapAttributions)
-		healthJSON, _ := json.Marshal(r.SensorHealth)
+	for rows.Next() {
+		var ts int64
+		var stationID, anomType, sev, confCat, expl, shapStr, healthStr string
+		var temp, press, hum, anomScore float64
+		var isAnomInt int
+
+		if err := rows.Scan(&ts, &stationID, &temp, &press, &hum,
+			&isAnomInt, &anomScore, &anomType, &sev, &confCat, &expl, &shapStr, &healthStr); err != nil {
+			continue
+		}
 
 		insertSQL := `
 		INSERT INTO telemetry_logs (
@@ -244,9 +300,9 @@ func (dm *DatabaseManager) SyncAllToCloud() (int, error) {
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
 
 		_, err := neonDB.Exec(insertSQL,
-			r.Timestamp, r.StationID, r.Temperature, r.Pressure, r.Humidity,
-			r.IsAnomaly, r.AnomalyScore, r.AnomalyType, r.Severity,
-			r.ConfidenceCategory, r.Explanation, string(shapJSON), string(healthJSON),
+			ts, stationID, temp, press, hum,
+			isAnomInt == 1, anomScore, anomType, sev,
+			confCat, expl, shapStr, healthStr,
 		)
 		if err == nil {
 			synced++
@@ -256,29 +312,89 @@ func (dm *DatabaseManager) SyncAllToCloud() (int, error) {
 }
 
 func (dm *DatabaseManager) GetHistory(limit int) []TelemetryRecord {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
-
-	if limit <= 0 || limit > len(dm.records) {
-		limit = len(dm.records)
+	if limit <= 0 {
+		limit = 100
 	}
 
-	start := len(dm.records) - limit
-	res := make([]TelemetryRecord, limit)
-	copy(res, dm.records[start:])
-	return res
+	dm.mu.Lock()
+	localDB := dm.localDB
+	dm.mu.Unlock()
+
+	if localDB == nil {
+		return []TelemetryRecord{}
+	}
+
+	query := `
+		SELECT id, timestamp, station_id, temperature, pressure, humidity,
+		       is_anomaly, anomaly_score, anomaly_type, severity,
+		       confidence_category, explanation, shap_attributions, sensor_health, created_at
+		FROM (
+			SELECT * FROM telemetry_logs ORDER BY id DESC LIMIT ?
+		) sub
+		ORDER BY id ASC
+	`
+
+	rows, err := localDB.Query(query, limit)
+	if err != nil {
+		log.Printf("[-] SQLite GetHistory Query Error: %v", err)
+		return []TelemetryRecord{}
+	}
+	defer rows.Close()
+
+	records := make([]TelemetryRecord, 0, limit)
+	for rows.Next() {
+		var r TelemetryRecord
+		var isAnomInt int
+		var shapStr, healthStr sql.NullString
+		var createdAt sql.NullString
+
+		err := rows.Scan(
+			&r.ID, &r.Timestamp, &r.StationID, &r.Temperature, &r.Pressure, &r.Humidity,
+			&isAnomInt, &r.AnomalyScore, &r.AnomalyType, &r.Severity,
+			&r.ConfidenceCategory, &r.Explanation, &shapStr, &healthStr, &createdAt,
+		)
+		if err != nil {
+			continue
+		}
+
+		r.IsAnomaly = (isAnomInt == 1)
+		if createdAt.Valid {
+			r.CreatedAt = createdAt.String
+		}
+
+		if shapStr.Valid && shapStr.String != "" {
+			var shap map[string]float64
+			if err := json.Unmarshal([]byte(shapStr.String), &shap); err == nil {
+				r.ShapAttributions = shap
+			}
+		}
+		if healthStr.Valid && healthStr.String != "" {
+			var health map[string]float64
+			if err := json.Unmarshal([]byte(healthStr.String), &health); err == nil {
+				r.SensorHealth = health
+			}
+		}
+
+		records = append(records, r)
+	}
+
+	return records
 }
 
 func (dm *DatabaseManager) GetStats() map[string]interface{} {
 	dm.mu.Lock()
-	defer dm.mu.Unlock()
+	localDB := dm.localDB
+	dm.mu.Unlock()
 
-	total := len(dm.records)
+	total := 0
 	anomalies := 0
-	for _, r := range dm.records {
-		if r.IsAnomaly {
-			anomalies++
-		}
+
+	if localDB != nil {
+		row := localDB.QueryRow(`
+			SELECT COUNT(*), COALESCE(SUM(CASE WHEN is_anomaly = 1 THEN 1 ELSE 0 END), 0)
+			FROM telemetry_logs
+		`)
+		_ = row.Scan(&total, &anomalies)
 	}
 
 	fi, err := os.Stat(dm.dbPath)
@@ -293,6 +409,7 @@ func (dm *DatabaseManager) GetStats() map[string]interface{} {
 		"normal_records":    total - anomalies,
 		"db_file_path":      dm.dbPath,
 		"db_size_bytes":     dbSize,
+		"db_engine":         "SQLite 3 (Local) + Neon PostgreSQL (Cloud)",
 		"external_db_sync":  dm.config.Enabled,
 		"external_provider": dm.config.Provider,
 		"neon_conn_active":  dm.neonConnOK,
