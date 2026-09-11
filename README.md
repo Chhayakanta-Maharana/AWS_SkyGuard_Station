@@ -25,9 +25,10 @@
 10. [Evaluation Criteria & Weightage Breakdown](#-evaluation-criteria--weightage-breakdown)
 11. [Representative Example Use Case](#-representative-example-use-case)
 12. [The Grand Challenge](#-the-grand-challenge)
-13. [Step-by-Step Installation & Execution Guide](#-step-by-step-installation--execution-guide)
-14. [Repository File Structure](#-repository-file-structure)
-15. [Project Deliverables & Documentation Index](#-project-deliverables--documentation-index)
+13. [Key Technical Q&A: Models, Data Volume & Self-Learning Architecture](#-key-technical-qa-models-data-volume--self-learning-architecture)
+14. [Step-by-Step Installation & Execution Guide](#-step-by-step-installation--execution-guide)
+15. [Repository File Structure](#-repository-file-structure)
+16. [Project Deliverables & Documentation Index](#-project-deliverables--documentation-index)
 
 ---
 
@@ -405,6 +406,94 @@ flowchart LR
     end
 
     AWARE --> DIAGNOSTIC --> HEALING
+```
+
+---
+
+## 🧠 Key Technical Q&A: Models, Data Volume & Self-Learning Architecture
+
+### Q1: What AI / Machine Learning and Physics models are implemented in this project?
+**Answer**: SkyGuard AI employs a hybrid ensemble of 7 distinct AI, Machine Learning, Statistical, and Physics-informed models operating in parallel:
+
+1. **Isolation Forest (Unsupervised ML)**: 100 Isolation Trees trained on multidimensional meteorological vectors to isolate subtle, non-linear sensor anomalies via tree path scoring ($S(x, n) = 2^{-E(h(x))/c(n)}$). *(Source: `skyguard_ai/train.py`, `models/anomaly_model.pkl`)*
+2. **SHAP (Explainable AI / XAI)**: Shapley game-theoretic attribution engine calculating exact numerical feature contributions ($\phi_i$) for every detected anomaly. *(Source: `skyguard_ai/inference/inference_service.py`)*
+3. **Magnus-Tetens Psychrometric QC (Physics-Informed)**: Deterministic thermodynamic equations calculating theoretical saturation vapor pressure ($E_s$), actual vapor pressure ($E$), and dew point ($T_d$) to catch hydrothermal violations. *(Source: `backend/detector.go`, `esp32_edge/skyguard_edge_ai.h`)*
+4. **Linear Weighted Moving Average / LWMA (Self-Healing Imputer)**: Real-time quadratic-linear reconstruction model ($\hat{x}_t = \frac{\sum i \cdot x_i}{\sum i}$) that estimates clean substitutions without error leakage. *(Source: `backend/detector.go`)*
+5. **Standardized Multivariate Z-Score Distance**: Statistical distance metric ($D^2 = z_T^2 + z_P^2 + z_{\text{RH}}^2$) flagging joint parameter deviations $>3\sigma$. *(Source: `backend/detector.go`)*
+6. **Transducer Health Decay Model**: Dynamic $0-100\%$ decay tracker based on cumulative anomaly frequency, variance decay, and signal-to-noise degradation. *(Source: `backend/detector.go`)*
+7. **Embedded Micro-Inference Engine (Edge C++)**: Pure C/C++ decision tree screening running on ESP32 microcontrollers in $<15\ \mu\text{s}$. *(Source: `esp32_edge/skyguard_edge_ai.h`)*
+
+---
+
+### Q2: On how much data is the model trained?
+**Answer**: The production Isolation Forest model is trained on **10,000 meteorological observation samples** (derived from high-altitude radiosonde and AWS weather profiles) partitioned using a strict **chronological time-series split**:
+
+| Partition | Percentage | Sample Count | Purpose |
+| :--- | :---: | :---: | :--- |
+| **Training Set** | **70%** | **7,000 Samples** | Trains the unsupervised Isolation Forest decision trees exclusively on clean normal atmospheric baselines. |
+| **Validation Set** | **15%** | **1,500 Samples** | Used to tune hyperparameters and calibrate the exact decision threshold ($\tau = -0.1132$). |
+| **Test Set** | **15%** | **1,500 Samples** | Injected with multi-class synthetic anomalies to measure empirical Precision, Recall, F1, and FPR. |
+| **Total Dataset** | **100%** | **10,000 Samples** | Full chronological observational dataset. |
+
+* **14 Engineered Features per Sample**: Evaluates temperature, pressure, humidity, 1st-order temporal deltas ($\Delta x/\Delta t$), 5-sample rolling mean & standard deviation, dew point spread ($T - T_d$), and diurnal cyclic harmonics ($\sin/\cos$). *(Documented in `models/model_metadata.json`)*.
+
+---
+
+### Q3: Does the model self-learn from live streaming data, and how does it prevent learning from wrong/corrupted data?
+**Answer**: **Yes.** SkyGuard AI implements an **Anti-Poisoning Dual-Buffer Architecture** (`backend/detector.go` lines 393–402):
+
+```text
+[ Incoming Live Telemetry (T, P, RH) ]
+                  │
+                  ▼
+       [ Real-Time Screening ]
+       Physics QC + Isolation Forest
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+ [ Is NOMINAL / CLEAN ]   [ Is ANOMALOUS / FAULTY ]
+        │                   │
+        │ Genuine Data      ├─► 1. Raw reading QUARANTINED (Flagged & Alerted)
+        │                   ├─► 2. Replaces with Clean Imputed Value (LWMA)
+        ▼                   ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │       VERIFIED CLEAN BASELINE BUFFER (d.cleanHistory)       │
+ │   • Self-updates only with verified clean / healed data     │
+ │   • Re-calibrates dynamic rolling statistics (μ, σ)         │
+ │   • Zero contamination from spikes, freezes, or drift       │
+ └─────────────────────────────────────────────────────────────┘
+```
+
+* **When live data is Clean (`!result.IsAnomaly`)**: It is directly pushed to `d.cleanHistory`, allowing the dynamic baseline to continuously learn and adapt to seasonal and diurnal weather shifts.
+* **When live data is Faulty (`result.IsAnomaly == true`)**: The raw corrupted value is **quarantined and never allowed to touch the learning buffer**. Instead, only the mathematically verified **imputed clean estimate** is stored, completely preventing **model poisoning and concept drift**.
+
+---
+
+### Q4: What is the Architecture of the Self-Learning & Self-Healing Pipeline?
+**Answer**: The self-learning and self-healing loop operates through a continuous 3-stage autonomous cycle:
+
+```mermaid
+flowchart TD
+    subgraph AWARENESS ["Stage 1: Autonomous Self-Awareness"]
+        A1["Sensor Health Decay Scoring (0-100%)"]
+        A2["Magnus-Tetens Thermodynamic Equilibrium"]
+        A3["Multi-Station Spatial Cluster Consensus"]
+    end
+
+    subgraph DIAGNOSIS ["Stage 2: Intelligent Self-Diagnosis"]
+        B1["Isolation Forest Anomaly Scoring"]
+        B2["Distinction of Extreme Weather vs Sensor Glitch"]
+        B3["SHAP Root-Cause Feature Attribution"]
+    end
+
+    subgraph HEALING ["Stage 3: Resilient Self-Healing & Learning"]
+        C1["LWMA Linear Weighted Imputation"]
+        C2["Clean-Buffer Anti-Poisoning Model Update"]
+        C3["Automated Maintenance Work-Order Dispatch"]
+    end
+
+    AWARENESS --> DIAGNOSIS --> HEALING
+    HEALING -.->|Feeds Verified Clean Data| AWARENESS
 ```
 
 ---
