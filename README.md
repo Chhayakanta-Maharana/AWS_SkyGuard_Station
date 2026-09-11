@@ -498,6 +498,46 @@ flowchart TD
 
 ---
 
+### Q5: How Do We Test the Model and Station in Practice? (LAN Cable Sender .exe, ESP32 Wi-Fi & Multi-AWS Simulation)
+**Answer**: SkyGuard AI supports three practical, zero-friction testing methodologies designed for field trials, lab demonstrations, and multi-station network evaluation:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        SKYGUARD AI FIELD TESTING MODALITIES                             │
+├────────────────────────────────┬───────────────────────────────┬───────────────────────┤
+│ 1. Direct Ethernet LAN Sender  │ 2. ESP32 Wi-Fi / Radio Stream │ 3. Multi-AWS Grid Sim │
+│    [LAN_Data_Sender.exe]       │    [skyguard_edge_ai.h]       │    [Spatial Network]  │
+│  Import CSV/TXT (T, P, RH)     │  Shared Wi-Fi Network         │  AWS-01, 02, 03, 04   │
+│  Send via LAN Cable (UDP:5000) │  Microcontroller ADC broadcast│  Cluster Consensus QC │
+└────────────────────────────────┴───────────────────────────────┴───────────────────────┘
+```
+
+#### Method 1: Hardware-in-the-Loop via Direct LAN Cable (`LAN_Data_Sender.exe`)
+* **How it Works**: A dedicated telemetry sender executable (`LAN_Data_Sender.exe` or Python test sender) allows operators to import any custom dataset (CSV or TXT) containing the core triad: **Temperature ($T$), Atmospheric Pressure ($P$), and Relative Humidity ($\text{RH}$)**.
+* **Physical Connection**: Connect an Ethernet LAN cable between the sender PC and the ground station machine running `AWS_SkyGuard_Station.exe` (or opened in browser at `http://localhost:3000`).
+* **Transmission Protocol**: The sender broadcasts the imported meteorological observations across the Ethernet cable over **UDP Port 5000** or **TCP Port 5001** using the binary `0xAA55` frame layout.
+* **Real-Time Verification**: The dashboard immediately detects the incoming stream, decodes each packet, executes Isolation Forest ML + Physics QC, and displays real-time live curves and XAI diagnostics.
+
+#### Method 2: Microcontroller ESP32 Wireless Telemetry & Software Fallback
+* **Physical ESP32 Test (over Shared Wi-Fi)**:
+  * When testing with a physical ESP32 board, connect both the ESP32 and the host computer to the **same Wi-Fi network** (or a smartphone Wi-Fi hotspot).
+  * The ESP32 runs the pure C embedded engine ([`esp32_edge/skyguard_edge_ai.h`](file:///c:/Users/chhay/OneDrive/Documents/DRDO%20Project/AWS_SkyGuard_Station_GitHub/esp32_edge/skyguard_edge_ai.h)), reads transducer pins, performs microsecond edge screening, and transmits binary UDP packets to the host PC's local IP address (`192.168.x.x:5000`).
+* **Software Simulation (When No Physical ESP32 is Available)**:
+  * **No hardware required**: If you do not have a physical ESP32 board, the system provides a built-in software simulation tool (`DRDO_Launcher.py` or the Go backend's internal simulator).
+  * The software simulator generates bit-for-bit identical binary `0xAA55` frames and injects realistic weather cycles (diurnal solar heating, thunderstorm pressure plunges, and sensor glitches) directly into localhost `127.0.0.1:5000`. This enables 100% full-pipeline verification on any standalone laptop without needing external microcontrollers.
+
+#### Method 3: Multi-AWS Spatial Cluster & Neighbor Grid Testing
+* **Multi-Station Data Simulation**: To test the **Multi-AWS Spatial Grid**, the telemetry sender streams records tagged with distinct Station IDs:
+  * **AWS-01**: Target Station (e.g., streaming live data)
+  * **AWS-02**: North Neighbor
+  * **AWS-03**: East Neighbor
+  * **AWS-04**: South Neighbor
+* **Cluster Consensus Validation**:
+  * In the **Multi-AWS Spatial Grid** tab, the dashboard computes the real-time cluster consensus average ($\bar{T}_{\text{neighbors}} = 31.0^\circ\text{C}$) across all online nodes.
+  * You can test fault detection by sending an isolated spike to AWS-01 ($55.0^\circ\text{C}$ while neighbors remain at $31.0^\circ\text{C}$). The spatial engine instantly flags `SPATIAL OUTLIER DETECTED` and auto-imputes the target reading to $31.0^\circ\text{C}$ in under 1 millisecond.
+
+---
+
 ## 🛠️ Step-by-Step Installation & Execution Guide
 
 ### Prerequisites
