@@ -414,7 +414,7 @@ class SkyGuardTelemetrySender:
                 freq = max(0.05, float(self.stream_freq.get()))
                 interval = 1.0 / freq
 
-                # Determine data to send based on loaded file or manual values
+                # Determine data to send based on loaded file or manual/cluster modes
                 if len(self.loaded_data) > 0:
                     rec = self.loaded_data[row_idx]
                     t_val = rec["dry_temp"]
@@ -423,6 +423,18 @@ class SkyGuardTelemetrySender:
                     h_val = rec["humidity"]
                     st_val = rec["station_id"]
                     row_idx = (row_idx + 1) % len(self.loaded_data) if self.loop_file.get() else min(row_idx + 1, len(self.loaded_data) - 1)
+                elif self.active_mode == "multi_aws":
+                    # Round-robin through AWS-01, AWS-02, AWS-03, AWS-04
+                    stations = ["AWS-01", "AWS-02", "AWS-03", "AWS-04"]
+                    st_val = stations[row_idx % 4]
+                    row_idx = (row_idx + 1) % 4
+                    w_val = 25.5
+                    p_val = 1013.2
+                    h_val = 65.0
+                    if st_val == "AWS-01" and self.spatial_glitch:
+                        t_val = 55.0  # Hardware outlier on AWS-01
+                    else:
+                        t_val = 31.0 + (0.1 if st_val == "AWS-02" else (-0.1 if st_val == "AWS-03" else 0.0))
                 elif self.spatial_glitch:
                     t_val = 55.0
                     w_val = 25.5
