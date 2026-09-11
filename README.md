@@ -577,6 +577,62 @@ flowchart TD
 
 ---
 
+### Q7: How Does a Real Physical ESP32 Stream Live Telemetry Directly to the Desktop Dashboard in Practice?
+**Answer**: A real physical ESP32 transmits live telemetry to the SkyGuard Desktop Dashboard through two flexible hardware communication channels:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                      REAL ESP32 TO DESKTOP LIVE STREAMING TOPOLOGY                     │
+├────────────────────────────────────────┬───────────────────────────────────────────────┤
+│    PRIMARY MODE: Wireless Wi-Fi UDP    │       FALLBACK MODE: Direct USB Serial        │
+├────────────────────────────────────────┼───────────────────────────────────────────────┤
+│ • Broadcasts 24-byte binary 0xAA55     │ • Streams raw binary frames over USB-Serial   │
+│   datagrams directly to port 5000      │   at 115200 baud                              │
+│ • Range: Across local Wi-Fi / Hotspot  │ • Direct cable connection to desktop COM port │
+│ • Zero physical cables attached        │ • Ideal for calibration & mountain outposts   │
+└────────────────────────────────────────┴───────────────────────────────────────────────┘
+```
+
+#### 1. Configuration in `esp32_edge/skyguard_edge_ai.ino`:
+In the ESP32 firmware sketch ([`esp32_edge/skyguard_edge_ai.ino`](file:///c:/Users/chhay/OneDrive/Documents/DRDO%20Project/AWS_SkyGuard_Station_GitHub/esp32_edge/skyguard_edge_ai.ino#L32-L35)), configure your local network parameters:
+
+```cpp
+// Network Configuration for Ground Station Streaming
+const char* ssid = "YOUR_WIFI_NAME";            // Name of your Wi-Fi router / smartphone hotspot
+const char* password = "YOUR_WIFI_PASSWORD";    // Wi-Fi password
+const char* ground_station_ip = "192.168.1.15"; // Laptop's IPv4 address (found via 'ipconfig')
+const uint16_t ground_station_port = 5000;      // UDP listener port on Ground Station
+```
+
+#### 2. How the ESP32 Broadcasts the Live Stream:
+Every second, the ESP32 microcontroller executes its embedded QC engine, constructs the standardized 24-byte `0xAA55` binary datagram, and transmits it over UDP:
+
+```cpp
+// 1. Pack 24-byte binary datagram: 0xAA55, timestamp, floats (T, T_wet, P, RH), CRC-8
+uint8_t packet[24];
+packet[0] = 0xAA; packet[1] = 0x55;
+uint32_t ts_be = __builtin_bswap32((uint32_t)(millis() / 1000));
+memcpy(&packet[2], &ts_be, 4);
+memcpy(&packet[6], &sample.dry_temp, 4);
+memcpy(&packet[10], &sample.wet_temp, 4);
+memcpy(&packet[14], &sample.pressure_hpa, 4);
+memcpy(&packet[18], &sample.humidity, 4);
+packet[22] = calculate_crc8(packet, 22);
+packet[23] = 0x0A; // Newline delimiter
+
+// 2. Transmit over Wi-Fi UDP to Ground Station
+udp.beginPacket(ground_station_ip, ground_station_port);
+udp.write(packet, sizeof(packet));
+udp.endPacket();
+```
+
+#### 3. How the Desktop Ground Station Captures and Displays Live Data:
+1. **Network Ingestion (`backend/parser.go`)**: The Go backend runs a non-blocking goroutine listening on `0.0.0.0:5000`. As soon as the ESP32 datagram hits the network interface, the Go parser verifies the `0xAA55` sync header and `CRC-8` checksum.
+2. **Instant Pipeline Execution**: The reading is immediately passed through the Isolation Forest ML model and Magnus-Tetens thermodynamic physics QC in under **0.39 ms**.
+3. **Live Dashboard Update**: The Go server pushes the validated observations over WebSockets to the desktop user interface, updating radial gauges, live dual-axis charts, and XAI diagnostic sidebars in real time.
+
+---
+
 ## 🛠️ Step-by-Step Installation & Execution Guide
 
 ### Prerequisites
