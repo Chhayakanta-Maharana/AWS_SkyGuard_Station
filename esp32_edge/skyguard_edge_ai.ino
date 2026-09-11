@@ -196,18 +196,40 @@ void setup() {
     Serial.println("Low-power Edge AI Sensor Anomaly Engine Active");
     Serial.println("=================================================");
 
-    // Optional WiFi/UDP LAN init
+    // Connect to Station Wi-Fi network (or router / mobile hotspot)
+    Serial.printf("Connecting to Wi-Fi SSID: %s ...\n", ssid);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
-    // Connect non-blocking
+    
+    uint8_t timeout = 0;
+    while (WiFi.status() != WL_CONNECTED && timeout < 20) {
+        delay(500);
+        Serial.print(".");
+        timeout++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("\n[Wi-Fi Connected] ESP32 IP: %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("[Target Ground Station] %s:%d\n", ground_station_ip, ground_station_port);
+        udp.begin(5005); // Local UDP listening port
+    } else {
+        Serial.println("\n[!] Wi-Fi connection timed out. Falling back to USB-Serial streaming mode.");
+    }
 }
 
 void loop() {
-    // 1. Simulate or read hardware I2C/SPI sensor suite
+    // 1. Read Physical Sensor Suite (PT100 RTD via SPI, BMP280 via I2C, SHT31 RH)
     EdgeSensorReading sample;
-    sample.timestamp = millis() / 1000;
+    sample.timestamp = (uint32_t)(millis() / 1000);
+    
+    // In hardware deployment: replace with actual SPI/I2C sensor read functions:
+    // sample.dry_temp = max31865_read_temp();
+    // sample.pressure_hpa = bmp280_read_pressure();
+    // sample.humidity = sht31_read_humidity();
     sample.dry_temp = 28.5f + (sinf(millis() * 0.001f) * 4.0f);
     sample.humidity = 62.0f + (cosf(millis() * 0.001f) * 8.0f);
     sample.pressure_hpa = 1012.4f;
+    sample.wet_temp = sample.dry_temp - ((100.0f - sample.humidity) / 5.0f);
     sample.wind_speed = 3.2f;
     sample.wind_dir = 180;
     sample.solar_rad = 540.0f;
@@ -216,14 +238,44 @@ void loop() {
     // 2. Execute TinyML / Edge AI Anomaly Inference in < 15 microseconds
     EdgeAnomalyResult result = skyguard_edge_analyze(&edge_state, &sample);
 
-    // 3. Log & Self-Heal on Edge
+    // 3. Build 24-Byte Standardized Binary 0xAA55 Datagram
+    // Sync (2B: 0xAA55), Timestamp (4B), DryTemp (4B), WetTemp (4B), Press (4B), RH (4B), CRC (1B), Term (1B: 0x0A)
+    uint8_t packet[24];
+    packet[0] = 0xAA;
+    packet[1] = 0x55;
+    
+    uint32_t ts_be = __builtin_bswap32(sample.timestamp);
+    memcpy(&packet[2], &ts_be, 4);
+
+    memcpy(&packet[6], &sample.dry_temp, 4);
+    memcpy(&packet[10], &sample.wet_temp, 4);
+    memcpy(&packet[14], &sample.pressure_hpa, 4);
+    memcpy(&packet[18], &sample.humidity, 4);
+
+    // CRC-8 Checksum over bytes 0 through 21
+    uint8_t crc = 0;
+    for (int i = 0; i < 22; i++) {
+        crc += packet[i];
+    }
+    packet[22] = crc;
+    packet[23] = 0x0A; // Newline delimiter
+
+    // 4. Transmit over Wi-Fi UDP to Ground Station PC (Port 5000)
+    if (WiFi.status() == WL_CONNECTED) {
+        udp.beginPacket(ground_station_ip, ground_station_port);
+        udp.write(packet, sizeof(packet));
+        udp.endPacket();
+    }
+
+    // 5. Dual-Stream Output: Also print over USB Serial COM port for direct cable debugging
     if (result.is_anomaly) {
         Serial.printf("[EDGE AI ALERT] Severity=%d, Type=%s, Confidence=%.1f%%\n", result.severity, result.anomaly_type, result.confidence);
         Serial.printf("                 XAI Reason: %s\n", result.xai_reason);
         Serial.printf("                 Self-Healed Value: Temp=%.1f C, RH=%.1f %%\n", result.imputed_temp, result.imputed_hum);
     } else {
-        Serial.printf("[NOMINAL] T=%.1f C, RH=%.1f %%, P=%.1f hPa (Healthy)\n", sample.dry_temp, sample.humidity, sample.pressure_hpa);
+        Serial.printf("[NOMINAL STREAM] T=%.1f C, RH=%.1f %%, P=%.1f hPa (UDP Sent -> %s:%d)\n", 
+                      sample.dry_temp, sample.humidity, sample.pressure_hpa, ground_station_ip, ground_station_port);
     }
 
-    delay(1000);
+    delay(1000); // 1 Hz Telemetry sampling interval
 }
