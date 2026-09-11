@@ -1,12 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 
+project_dir = os.path.abspath(SPECPATH) if 'SPECPATH' in locals() else os.path.abspath('.')
+app_py = os.path.join(project_dir, 'desktop', 'app.py')
+backend_exe = os.path.join(project_dir, 'backend', 'aws-telemetry-backend.exe')
+frontend_out = os.path.join(project_dir, 'frontend', 'out')
 
 a = Analysis(
-    ['D:/SIH73/AWS_SkyGuard_Station/desktop/app.py'],
-    pathex=[],
+    [app_py],
+    pathex=[project_dir],
     binaries=[],
-    datas=[('D:/SIH73/AWS_SkyGuard_Station/backend/aws-telemetry-backend.exe', 'backend'), ('D:/SIH73/AWS_SkyGuard_Station/frontend/out', 'frontend/out')],
-    hiddenimports=[],
+    datas=[(backend_exe, 'backend'), (frontend_out, 'frontend/out')],
+    hiddenimports=['clr', 'clr_loader', 'webview'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

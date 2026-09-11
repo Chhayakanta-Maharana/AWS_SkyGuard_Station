@@ -99,14 +99,37 @@ function ShieldCheckIcon() {
   );
 }
 
+// API Endpoint Resolver for both Next.js dev server (localhost:3000) and Desktop / Production (localhost:8080)
+const getApiEndpoint = (path) => {
+  if (typeof window !== "undefined") {
+    if (window.location.port === "3000") {
+      return `http://127.0.0.1:8080${path}`;
+    }
+  }
+  return path;
+};
+
 // Live Analog Clock Widget
 function AnalogClock() {
-  const [time, setTime] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
+  const [time, setTime] = useState(null);
 
   useEffect(() => {
+    setMounted(true);
+    setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (!mounted || !time) {
+    return (
+      <svg className="analog-clock-svg" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg" suppressHydrationWarning>
+        <circle cx="35" cy="35" r="33" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.8" />
+        <circle cx="35" cy="35" r="30" stroke="rgba(0,0,0,0.04)" strokeWidth="1" />
+        <circle cx="35" cy="35" r="2.5" fill="#ea580c" />
+      </svg>
+    );
+  }
 
   const seconds = time.getSeconds();
   const minutes = time.getMinutes();
@@ -117,7 +140,7 @@ function AnalogClock() {
   const hourAngle = (hours % 12) * 30 + minutes * 0.5;
 
   return (
-    <svg className="analog-clock-svg" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className="analog-clock-svg" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg" suppressHydrationWarning>
       <circle cx="35" cy="35" r="33" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.8" />
       <circle cx="35" cy="35" r="30" stroke="rgba(0,0,0,0.04)" strokeWidth="1" />
       
@@ -551,7 +574,7 @@ export default function Home() {
     }
 
     setConnectionStatus("connecting");
-    const es = new EventSource("/api/stream");
+    const es = new EventSource(getApiEndpoint("/api/stream"));
     eventSourceRef.current = es;
 
     es.onopen = () => setConnectionStatus("connected");
@@ -762,7 +785,7 @@ export default function Home() {
     });
 
     try {
-      await fetch("/api/inject", {
+      await fetch(getApiEndpoint("/api/inject"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ anomaly_type: type, parameter: param, value: val })
@@ -854,7 +877,7 @@ export default function Home() {
     });
 
     try {
-      await fetch("/api/reset");
+      await fetch(getApiEndpoint("/api/reset"));
     } catch (err) {
       console.log("Reset sent");
     }
@@ -1410,8 +1433,8 @@ export default function Home() {
 
                     <div className="datetime-split-content">
                       <div className="datetime-text-side">
-                        <div className="date-text-day">{dateStr}</div>
-                        <div className="date-text-clock">{timeStr}</div>
+                        <div className="date-text-day" suppressHydrationWarning>{dateStr}</div>
+                        <div className="date-text-clock" suppressHydrationWarning>{timeStr}</div>
                       </div>
 
                       <AnalogClock />

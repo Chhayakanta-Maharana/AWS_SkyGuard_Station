@@ -238,7 +238,7 @@ class SkyGuardAnomalyEngine:
         self.history.append(packet)
         self.freeze_window.append(packet)
 
-        # Imputation defaults (EWMA rolling average)
+        # Imputation defaults (LWMA rolling average)
         imputed = {
             "Dry Bulb Temp": dry_temp,
             "Wet Bulb Temp": wet_temp,

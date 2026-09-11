@@ -13,7 +13,7 @@
 | **Sensor Fault, Spike & Flatline Detection** | 20% | 3-Sigma Z-Score + Temporal Rate-of-Change ($\Delta T/\Delta t$) + Invariant Rolling Variance flatline buffer. | ✅ Implemented |
 | **Multivariate Physical Consistency** | 25% | Magnus-Tetens Psychrometric Thermodynamic equation coupling $T_{\text{dry}}$, $T_{\text{wet}}$, $P$, and $\text{RH}$. | ✅ Implemented |
 | **Explainable AI (XAI) & Root Cause** | 10% | Instant plain-language diagnostic generation with severity tags and confidence metrics (0–100%). | ✅ Implemented |
-| **Self-Healing & Imputation (Grand Challenge)** | 25% | Real-time statistical EWMA + Psychrometric Vapor Pressure physical estimation with one-click toggle. | ✅ Implemented |
+| **Self-Healing & Imputation (Grand Challenge)** | 25% | Real-time statistical LWMA + Psychrometric Vapor Pressure physical estimation with one-click toggle. | ✅ Implemented |
 | **Fault Injection Testbench & Evaluation** | 15% | Interactive live injection buttons (Spike +25°C, Pressure Freeze, Humidity Drift, Packet Outage). | ✅ Implemented |
 | **Interactive Visualization & UI** | 5% | Next.js 19 desktop GUI with 10 parameter cards, SVG compass needle dial, spectral charts, and data logger. | ✅ Implemented |
 | **Edge & Standalone Deployment** | 10% | Fully self-contained Windows standalone `.exe` (Go Backend + Next.js Frontend bundled). | ✅ Implemented |
@@ -84,7 +84,7 @@ flowchart TD
     XAI3 --> XAI4["<b>Root-Cause Generator</b><br/>Text Diagnostics"]:::subBox
 
     HEAL --> HEAL1["<b>Health Decay Meter</b><br/>Cumulative Density"]:::subBox
-    HEAL1 --> HEAL2["<b>EWMA Imputation</b><br/>x_t = α·y_t + (1-α)·x_{t-1}"]:::subBox
+    HEAL1 --> HEAL2["<b>LWMA Imputation</b><br/>x̂_t = Σ(i·x_i) / Σ i"]:::subBox
     HEAL2 --> HEAL3["<b>Inverse Psychrometric</b><br/>Physical Estimation"]:::subBox
     HEAL3 --> HEAL4["<b>Online Learning</b><br/>Update Baseline (N=500)<br/>Recalibrate τ"]:::subBox
 
@@ -149,7 +149,7 @@ $$\text{If } |\text{RH}_{\text{reported}} - \text{RH}_{\text{theo}}| > 35\% \imp
 ### Use Case 1: Extreme Temperature Spike (+25°C Sensor Glitch)
 *   **Observation**: Station reports a jump from 24°C to 49°C in 1 second.
 *   **AI Diagnosis**: `🚨 HIGH SEVERITY: SENSOR MALFUNCTION (Dry Bulb Temp spiked +25°C in 1s. Temporal gradient 25°C/s > Max 3.5°C/s).`
-*   **Self-Healing**: Imputes 24.2°C using rolling EWMA; prevents false heatwave alerts.
+*   **Self-Healing**: Imputes 24.2°C using rolling LWMA; prevents false heatwave alerts.
 
 ### Use Case 2: Barometric Sensor Freezing (Icing / Stuck ADC)
 *   **Observation**: Pressure remains at exactly 1013.25 hPa for 10+ samples with zero variance while other sensors fluctuate.

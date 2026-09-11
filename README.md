@@ -85,11 +85,11 @@ Traditional rule-based threshold filters check only if values fall within broad 
 
 ## 🎯 Problem Statement
 
-> **SIH Problem Statement PS-26073 / DRDO Weather Intelligence:**
+> **National Meteorological Quality Control & Advanced Weather Intelligence:**
 > Develop an AI/ML-based intelligent anomaly detection system capable of automatically identifying abnormal, inconsistent, or faulty observations from Automatic Weather Stations in real time using **only** the following three primary meteorological parameters:
-> 1. **Temperature ($^\circ\text{C}$)**
-> 2. **Atmospheric Pressure ($\text{hPa}$)**
-> 3. **Relative Humidity ($\%$)**
+> 1. **Temperature (°C)**
+> 2. **Atmospheric Pressure (hPa)**
+> 3. **Relative Humidity (%)**
 >
 > The system must distinguish between genuine meteorological events (heatwaves, cold fronts, thunderstorms, cyclonic pressure drops) and sensor/hardware failures while minimizing false alarms and enabling scalable deployment across vast observation networks.
 
@@ -194,12 +194,12 @@ The system accepts real-time sensor streams, historical observations, or injecte
 
 | Meteorological Parameter | Standard Unit | Physical Valid Range | Sensor Transducer Technology |
 | :--- | :---: | :---: | :--- |
-| **Dry Bulb Temperature ($T$)** | $^\circ\text{C}$ | $-40.0^\circ\text{C} \text{ to } +60.0^\circ\text{C}$ | Platinum Resistance Thermometer (PT100 / PT1000) |
-| **Atmospheric Pressure ($P$)** | $\text{hPa}$ | $850.0\text{ hPa to } 1080.0\text{ hPa}$ | Silicon Piezoresistive / Resonant Barometer |
-| **Relative Humidity ($\text{RH}$)** | $\%$ | $0.0\% \text{ to } 100.0\%$ | Thin-Film Capacitive Humidity Sensor |
-| **Wet Bulb Temperature ($T_w$)** *(Aux)* | $^\circ\text{C}$ | $-40.0^\circ\text{C} \text{ to } +50.0^\circ\text{C}$ | Psychrometer Thermistor / Derived Formula |
-| **Wind Speed & Direction** *(Aux)* | $\text{m/s} \text{ \& } ^\circ$ | $0-60\text{ m/s} \text{, } 0-359^\circ$ | Ultrasonic / Cup Anemometer + Wind Vane |
-| **Solar Radiation** *(Aux)* | $\text{W/m}^2$ | $0-1500\text{ W/m}^2$ | Thermopile Pyranometer |
+| **Dry Bulb Temperature (T)** | °C | -40.0°C to +60.0°C | Platinum Resistance Thermometer (PT100 / PT1000) |
+| **Atmospheric Pressure (P)** | hPa | 850.0 hPa to 1080.0 hPa | Silicon Piezoresistive / Resonant Barometer |
+| **Relative Humidity (RH)** | % | 0.0% to 100.0% | Thin-Film Capacitive Humidity Sensor |
+| **Wet Bulb Temperature (Tw)** *(Aux)* | °C | -40.0°C to +50.0°C | Psychrometer Thermistor / Derived Formula |
+| **Wind Speed & Direction** *(Aux)* | m/s & ° | 0–60 m/s, 0–359° | Ultrasonic / Cup Anemometer + Wind Vane |
+| **Solar Radiation** *(Aux)* | W/m² | 0–1500 W/m² | Thermopile Pyranometer |
 
 ### Binary Frame Layout (31-Byte Industrial Standard `0xAA55`)
 
@@ -322,18 +322,18 @@ COMPONENT               TECH STACK               PRIMARY ROLE & RESPONSIBILITIES
 
 ## ⚖️ Evaluation Criteria & Weightage Breakdown
 
-The SkyGuard AI architecture was engineered and rigorously audited against the official SIH / DRDO evaluation rubric:
+The SkyGuard AI architecture was engineered and rigorously audited against national meteorological standards and rigorous auto-QC evaluation criteria:
 
 | Evaluation Criterion | Weightage | SkyGuard AI Technical Implementation |
 | :--- | :---: | :--- |
 | **Innovation & Novelty** | **25%** | Hybrid coupling of deterministic Magnus-Tetens thermodynamic physics with unsupervised Isolation Forest decision trees, plus automated self-healing imputation without raw record mutation. |
 | **Detection Accuracy** | **20%** | Multi-class identification of 8 distinct anomaly classes achieving $>94\%$ F1-score across sensor drifts, spikes, freeze lockups, and multivariate thermodynamic errors. |
-| **Real-Time Capability** | **15%** | Sub-millisecond ($<1.2\text{ ms}$) end-to-end latency from UDP network packet receipt to browser visual update via Go zero-allocation concurrency and Server-Sent Events. |
+| **Real-Time Capability** | **15%** | Sub-millisecond (<1.2 ms) end-to-end latency from UDP network packet receipt to browser visual update via Go zero-allocation concurrency and Server-Sent Events. |
 | **Explainability (XAI)** | **10%** | Real-time feature attribution outputting exact numeric drivers (e.g., `ΔT/Δt: +8.4°C/s`) and clear root-cause diagnostic text for every detected error. |
-| **Scalability** | **10%** | Concurrent multi-station cluster consensus architecture capable of ingesting $>50,000\text{ frames/sec}$ per node across regional AWS grids. |
+| **Scalability** | **10%** | Concurrent multi-station cluster consensus architecture capable of ingesting >50,000 frames/sec per node across regional AWS grids. |
 | **Practical Deployability** | **10%** | Standalone single-file Windows executable (`AWS_SkyGuard_Station.exe`) requiring zero installation, zero external internet dependencies, and fully offline operation. |
 | **Visualization / UI** | **5%** | Modern glassmorphic Next.js interface with animated radial gauges, live sparklines, interactive anomaly timeline, manual fault injector, and SHAP charts. |
-| **Energy Efficiency** | **5%** | Ultra-low-power ESP32 edge screening C++ header consuming $<15\text{ mA}$ active current for battery/solar-powered remote deployments. |
+| **Energy Efficiency** | **5%** | Ultra-low-power ESP32 edge screening C++ header consuming <15 mA active current for battery/solar-powered remote deployments. |
 
 ```mermaid
 pie title Evaluation Criteria Breakdown (100% Total)
@@ -438,9 +438,13 @@ cd AWS_SkyGuard_Station
 #### Step 2: Start the Go Ingestion Backend
 ```bash
 cd backend
-go run main.go
+go run .
 ```
 *The backend will initialize the SQLite database and start listening on UDP `:5000`, TCP `:5001`, and HTTP/SSE `:8080`.*
+
+> [!IMPORTANT]
+> **Golang Package Compilation Notice**:  
+> Always use `go run .` (with the dot) instead of `go run main.go`. Because the backend engine is modularized across multiple source files (`main.go`, `detector.go`, `db.go`, `parser.go`, `simulator.go`) in `package main`, executing `go run main.go` in isolation will throw `# command-line-arguments undefined: Simulator / undefined: Detector` errors. You can also run the pre-built binary directly: `.\aws-telemetry-backend.exe`.
 
 #### Step 3: Start the Next.js Web Dashboard
 In a separate terminal:
@@ -554,14 +558,15 @@ AWS_SkyGuard_Station_GitHub/
 | **Live Interactive Architecture** | [presentation_logos/architecture_diagram_corrected.html](presentation_logos/architecture_diagram_corrected.html) | Interactive HTML5 diagram detailing dataflow across all system tiers. |
 | **Research Workflow Visualizer** | [presentation_logos/research_workflow_clickable.html](presentation_logos/research_workflow_clickable.html) | Step-by-step scientific research & ML training workflow visualizer. |
 | **Complete Technical Report** | [SIH_PS_26073_PROJECT_DOCUMENTATION.md](SIH_PS_26073_PROJECT_DOCUMENTATION.md) | Exhaustive technical documentation covering mathematical formulations and architecture. |
-| **SIH Requirement Mapping** | [SIH_REQUIREMENT_MAPPING.md](SIH_REQUIREMENT_MAPPING.md) | Item-by-item verification matrix against all SIH PS-26073 problem requirements. |
+| **Requirement & Standards Mapping** | [SIH_REQUIREMENT_MAPPING.md](SIH_REQUIREMENT_MAPPING.md) | Item-by-item verification matrix against national meteorological and auto-QC requirements. |
 | **System Reference & Use Cases** | [USE_CASES.md](USE_CASES.md) | In-depth operational scenarios, failure modes, and mathematical equations. |
+| **Official Technical Specification PDF** | [SkyGuard_AI_SIH_Technical_Report.pdf](SkyGuard_AI_SIH_Technical_Report.pdf) | Formal 50-page engineering technical report document detailing system architecture. |
 | **Project Inspection Log** | [PROJECT_INSPECTION.md](PROJECT_INSPECTION.md) | Comprehensive diagnostic audit verifying system integrity and component health. |
 | **Pre-Built Windows Binary** | [dist/AWS_SkyGuard_Station.exe](dist/AWS_SkyGuard_Station.exe) | Single-click standalone Windows executable ready for instant deployment. |
 
 ---
 
 <p align="center">
-  <b>Developed for DRDO & Smart India Hackathon (SIH PS-26073)</b><br>
-  <i>Empowering Next-Generation Autonomous & Trustworthy Weather Observation Networks.</i>
+  <b>Engineered to Advance India's National Meteorological Observation & Weather Monitoring Infrastructure</b><br>
+  <i>Empowering Next-Generation Autonomous, Resilient & Trustworthy Weather Station Networks across India.</i>
 </p>

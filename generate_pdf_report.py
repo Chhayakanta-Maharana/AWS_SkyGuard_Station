@@ -9,7 +9,7 @@ Generates an exhaustive, production-grade 50-page technical specification PDF:
 - Isolation Forest ML mathematics, training protocols, 14-D feature vector
 - Empirical benchmarks, confusion matrices, latency metrics
 - ESP32 Edge C/C++ firmware & microsecond screening
-- Self-healing EWMA and inverse psychrometric imputation
+- Self-healing LWMA and inverse psychrometric imputation
 - Dual SQLite / Neon PostgreSQL database architecture
 """
 
@@ -251,7 +251,7 @@ def build_50_page_pdf(output_pdf_path):
             ["5. AI/ML Isolation Forest Core & Training", "Pages 14 – 18", "Tree isolation mathematics, 500k row dataset, chronological splits, threshold tuning"],
             ["6. Fault Detection Mechanics & Spatial Consensus", "Pages 19 – 23", "Spikes, flatlines, calibration drift, multivariate discordance & multi-AWS consensus"],
             ["7. Explainable AI (XAI) & Maintenance", "Pages 24 – 28", "Game-theoretic SHAP attributions, LIME surrogate equations & transducer health decay"],
-            ["8. Self-Healing & Microcontroller Edge AI", "Pages 29 – 33", "EWMA imputation, inverse psychrometric reconstruction & ESP32 C-header engine"],
+            ["8. Self-Healing & Microcontroller Edge AI", "Pages 29 – 33", "LWMA imputation, inverse psychrometric reconstruction & ESP32 C-header engine"],
             ["9. Desktop GUI & UI Section Walkthrough", "Pages 34 – 45", "Complete walkthrough of all 8 application pages, gauges, charts, tables & side panels"],
             ["10. Benchmarks, Field Operations & Compliance", "Pages 46 – 50", "Empirical confusion matrices, latency benchmarks, Himalayan deployment & WMO audit"]
         ]
@@ -336,7 +336,7 @@ def build_50_page_pdf(output_pdf_path):
             ["3. Thermodynamic QC", "backend/detector.go", "Enforces Magnus-Tetens vapor equilibrium and psychrometric constraints"],
             ["4. ML Isolation Forest", "skyguard_ai/inference/", "Tree depth scoring to isolate complex multivariate anomalies"],
             ["5. Explainable AI (XAI)", "skyguard_ai/inference/", "Computes SHAP feature importance percentages and LIME surrogate equations"],
-            ["6. Self-Healing Imputer", "backend/detector.go", "Reconstructs signals via EWMA and inverse psychrometrics without raw mutation"],
+            ["6. Self-Healing Imputer", "backend/detector.go", "Reconstructs signals via LWMA and inverse psychrometrics without raw mutation"],
             ["7. Native Desktop UI", "desktop/app.py", "PyWebView2 standalone dashboard rendering live dials, charts, and audit tables"]
         ]
         p.append(make_table(stages, [110, 120, 310]))
@@ -767,17 +767,17 @@ def build_50_page_pdf(output_pdf_path):
         ))
     pages.append(add_page("Self-Healing Network Architecture", "Self-Healing Engine", content_p29))
 
-    # PAGE 30: Self-Healing EWMA Imputation
+    # PAGE 30: Self-Healing LWMA Imputation
     def content_p30(p):
-        p.append(Paragraph("<b>EWMA Imputation Mathematics:</b>", body_bold))
+        p.append(Paragraph("<b>LWMA Imputation Mathematics:</b>", body_bold))
         p.append(Paragraph(
-            "For temporal spike and flatline anomalies, the self-healing engine computes an Exponentially Weighted Moving Average (EWMA):",
+            "For temporal spike and flatline anomalies, the self-healing engine computes a Linear Weighted Moving Average (LWMA) across the clean historical ring buffer:",
             body_style
         ))
-        p.append(Paragraph("$$\\hat{x}_t = \\alpha \\cdot y_t^* + (1 - \\alpha) \\cdot \\hat{x}_{t-1}$$", code_style))
-        p.append(Paragraph("where $\\alpha = 0.25$ and $y_t^*$ is the robust median of the clean historical ring buffer.", body_style))
-        p.append(Paragraph("This produces smooth, physically plausible signal transitions without lag or overshoot.", body_style))
-    pages.append(add_page("Self-Healing: EWMA Imputation", "Self-Healing Engine", content_p30))
+        p.append(Paragraph("$$\\hat{x}_t = \\frac{\\sum_{i=1}^{N} i \\cdot x_i}{\\sum_{i=1}^{N} i}$$", code_style))
+        p.append(Paragraph("where $N$ is the ring buffer depth ($N=10$) and $w_i = i$ assigns linearly increasing weight to the most recent verified clean observations.", body_style))
+        p.append(Paragraph("This produces responsive, bounded signal transitions without lag or historical error leakage.", body_style))
+    pages.append(add_page("Self-Healing: LWMA Imputation", "Self-Healing Engine", content_p30))
 
     # PAGE 31: Inverse Psychrometric Imputation
     def content_p31(p):
@@ -1045,7 +1045,7 @@ def build_50_page_pdf(output_pdf_path):
             ["Parameter Scope", "Strictly Temp, Pressure, Humidity", "PASSED (Dry/Wet Temp, Pressure, RH Core)"],
             ["Real-Time Detection", "Automatic fault identification", "PASSED (Sub-millisecond Go + Isolation Forest)"],
             ["Explainable AI (XAI)", "SHAP / LIME reasoning", "PASSED (SHAP % weights + LIME surrogates)"],
-            ["Self-Healing Imputation", "Suggest clean corrected values", "PASSED (EWMA + Inverse Psychrometrics)"],
+            ["Self-Healing Imputation", "Suggest clean corrected values", "PASSED (LWMA + Inverse Psychrometrics)"],
             ["Edge AI on ESP32", "Low-power microcontroller", "PASSED (Pure C header, <15μs execution)"],
             ["Standalone Desktop", "Executable without dependencies", "PASSED (AWS_SkyGuard_Station.exe)"]
         ]
