@@ -112,6 +112,7 @@ func main() {
 	http.HandleFunc("/api/reset", handleReset)
 	http.HandleFunc("/api/stats", handleStats)
 	http.HandleFunc("/api/link_config", handleLinkConfig)
+	http.HandleFunc("/api/stations", handleStations)
 
 	// Database Management Endpoints
 	http.HandleFunc("/api/db/history", handleDBHistory)
@@ -123,6 +124,9 @@ func main() {
 		fmt.Printf("Serving static frontend files from: %s\n", *staticDirFlag)
 		fileServer := http.FileServer(http.Dir(*staticDirFlag))
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
 			path := filepath.Join(*staticDirFlag, r.URL.Path)
 			info, err := os.Stat(path)
 			if err != nil || info.IsDir() {
@@ -137,11 +141,21 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+*portFlag, nil))
 }
 
+func handleStations(w http.ResponseWriter, r *http.Request) {
+	if enableCors(w, r) {
+		return
+	}
+	stations := dbMgr.GetStationList()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stations)
+}
+
 func handleDBHistory(w http.ResponseWriter, r *http.Request) {
 	if enableCors(w, r) {
 		return
 	}
-	history := dbMgr.GetHistory(100)
+	stationID := r.URL.Query().Get("station_id")
+	history := dbMgr.GetHistoryFiltered(100, stationID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(history)
 }
@@ -422,7 +436,11 @@ func processAWSReading(reading *DecodedAWS) {
 		}
 		statsMu.Unlock()
 	} else {
-		res := det.AnalyzeSpatial("AWS-01", reading.DryBulbTemp, reading.RelHumidity, reading.PressureHpa)
+		stationID := reading.StationID
+		if stationID == "" {
+			stationID = "AWS-01"
+		}
+		res := det.AnalyzeSpatial(stationID, reading.DryBulbTemp, reading.RelHumidity, reading.PressureHpa)
 
 		dbMgr.InsertRecord(res, reading.DryBulbTemp, reading.PressureHpa, reading.RelHumidity)
 

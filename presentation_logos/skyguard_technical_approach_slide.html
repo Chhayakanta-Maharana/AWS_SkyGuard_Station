@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1600" />
+  <title>SkyGuard AI — Technical Approach & Architecture Workflow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      width: 1600px;
+      height: 900px;
+      background: #FFFFFF;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0F172A;
+      display: flex;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ─── LEFT SIDEBAR (TECH STACK & PROJECT INFO) ─── */
+    .sidebar {
+      width: 320px;
+      height: 100%;
+      background: #F8FAFC;
+      border-right: 2px solid #E2E8F0;
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .team-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #FFFFFF;
+      border: 2px solid #0284C7;
+      border-radius: 40px;
+      padding: 8px 18px;
+      font-size: 15px;
+      font-weight: 900;
+      color: #0369A1;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+      margin-bottom: 14px;
+    }
+
+    .techstack-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: #0369A1;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .techstack-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1E293B;
+      line-height: 1.35;
+    }
+
+    .techstack-list li span.num {
+      color: #0284C7;
+      font-weight: 900;
+      margin-right: 4px;
+    }
+
+    .techstack-list li span.sub {
+      font-size: 10.5px;
+      color: #64748B;
+      display: block;
+      font-weight: 500;
+      margin-left: 16px;
+    }
+
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .logo-pill {
+      background: #FFFFFF;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 8px;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #334155;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .logo-pill.highlight {
+      border-color: #38BDF8;
+      background: #F0F9FF;
+      color: #0369A1;
+    }
+
+    .links-section {
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .link-row a {
+      color: #0284C7;
+      text-decoration: underline;
+      font-weight: 800;
+    }
+
+    /* ─── MAIN WORKFLOW CANVAS (RIGHT) ─── */
+    .main-canvas {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 28px 20px;
+      background: #FFFFFF;
+      position: relative;
+    }
+
+    /* HEADER */
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .slide-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide-eyebrow {
+      font-size: 10px;
+      font-weight: 800;
+      color: #0284C7;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .slide-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #0F172A;
+      letter-spacing: -0.5px;
+    }
+
+    .slide-title span {
+      color: #0284C7;
+    }
+
+    .header-logos {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sih-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #F8FAFC;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 10px;
+      padding: 6px 14px;
+      text-align: right;
+    }
+
+    .sih-badge-text {
+      font-size: 11px;
+      font-weight: 900;
+      color: #0F172A;
+      line-height: 1.2;
+    }
+
+    .sih-badge-text span {
+      font-size: 8.5px;
+      color: #64748B;
+      display: block;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* ─── WORKFLOW LAYOUT (3 COLUMNS) ─── */
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: 290px 480px 450px;
+      gap: 20px;
+      height: 740px;
+      position: relative;
+    }
+
+    /* Common Card Box */
+    .wf-card {
+      background: #FFFFFF;
+      border: 2px solid #CBD5E1;
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .wf-card-title {
+      font-size: 11.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ─── COLUMN 1: TELEMETRY INGESTION ─── */
+    .col-ingest {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .node-user-box {
+      background: #F0F9FF;
+      border: 2px solid #7DD3FC;
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .node-icon {
+      font-size: 28px;
+    }
+
+    .node-title {
+      font-size: 12px;
+      font-weight: 900;
+      color: #0369A1;
+    }
+
+    .node-desc {
+      font-size: 9px;
+      color: #475569;
+      line-height: 1.35;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .arrow-down-bridge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #0284C7;
+      font-weight: 900;
+      font-size: 10px;
+      gap: 1px;
+    }
+
+    .arrow-down-line {
+      width: 2px;
+      height: 14px;
+      background: #0284C7;
+    }
+
+    .feature-buffer-box {
+      background: #FAF5FF;
+      border: 2px solid #C084FC;
+      border-radius: 12px;
+      padding: 10px 12px;
+      flex: 1;
+    }
+
+    .feature-item {
+      font-size: 9.5px;
+      color: #581C87;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2.5px 0;
+      border-bottom: 1px dashed #E9D5FF;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .feature-item:last-child {
+      border-bottom: none;
+    }
+
+    /* ─── COLUMN 2: 3-GUARD ANOMALY DETECTION ENGINE ─── */
+    .col-detection {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .guard-node {
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border: 1.5px solid;
+    }
+
+    .guard-node.physical {
+      background: #FFFBEB;
+      border-color: #FCD34D;
+    }
+
+    .guard-node.ml {
+      background: #ECFDF5;
+      border-color: #6EE7B7;
+    }
+
+    .guard-node.spatial {
+      background: #F0F9FF;
+      border-color: #7DD3FC;
+    }
+
+    .guard-header {
+      font-size: 10.5px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .guard-header.physical { color: #B45309; }
+    .guard-header.ml { color: #047857; }
+    .guard-header.spatial { color: #0369A1; }
+
+    .formula-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5px;
+      background: #FFFFFF;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,0.08);
+      font-weight: 700;
+      color: #0F172A;
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    .guard-desc {
+      font-size: 8.5px;
+      color: #475569;
+      line-height: 1.3;
+    }
+
+    /* ─── COLUMN 3: DECISION, SELF-HEALING & CONTINUOUS LEARNING ─── */
+    .col-decision {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .decision-branch {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1.5px solid;
+    }
+
+    .decision-branch.benign {
+      background: #F0FDF4;
+      border-color: #86EFAC;
+    }
+
+    .decision-branch.outlier {
+      background: #FFF1F2;
+      border-color: #FDA4AF;
+    }
+
+    .decision-branch.drift {
+      background: #FFFBEB;
+      border-color: #FDE68A;
+    }
+
+    .branch-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .branch-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .branch-title {
+      font-size: 10.5px;
+      font-weight: 900;
+    }
+
+    .branch-title.benign { color: #15803D; }
+    .branch-title.outlier { color: #BE123C; }
+    .branch-title.drift { color: #B45309; }
+
+    .branch-sub {
+      font-size: 8px;
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .continuous-learning-box {
+      background: #F8FAFC;
+      border: 2px solid #94A3B8;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .learning-title {
+      font-size: 10px;
+      font-weight: 900;
+      color: #334155;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .learning-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .learning-pill {
+      background: #FFFFFF;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 5px 6px;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #1E293B;
+      text-align: center;
+    }
+
+    .downstream-box {
+      background: linear-gradient(135deg, #0284C7, #0369A1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .downstream-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+    }
+
+    .downstream-sub {
+      font-size: 8.5px;
+      opacity: 0.9;
+    }
+
+    .downstream-badge {
+      background: #FFFFFF;
+      color: #0369A1;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    /* ─── FOOTER BAR ─── */
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1.5px solid #E2E8F0;
+      padding-top: 8px;
+      font-size: 9.5px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    .badge-pill {
+      font-size: 8.5px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 12px;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── LEFT COLUMN: TECH STACK & TEAM INFO ─── -->
+  <aside class="sidebar">
+    <div>
+      <div class="team-badge">
+        ✦ SKYGUARD AI TEAM
+      </div>
+
+      <div class="techstack-title">
+        🛠️ Techstack Used:
+      </div>
+
+      <ul class="techstack-list">
+        <li>
+          <span class="num">1.</span> <strong>Go 1.22</strong>
+          <span class="sub">High-Speed Ingest &amp; Orchestrator</span>
+        </li>
+        <li>
+          <span class="num">2.</span> <strong>Python 3.11</strong>
+          <span class="sub">Machine Learning &amp; XAI</span>
+        </li>
+        <li>
+          <span class="num">3.</span> <strong>Next.js 16 / React</strong>
+          <span class="sub">Ground Station Dashboard</span>
+        </li>
+        <li>
+          <span class="num">4.</span> <strong>PyWebView2 (.exe)</strong>
+          <span class="sub">Windows Native Standalone</span>
+        </li>
+        <li>
+          <span class="num">5.</span> <strong>Isolation Forest</strong>
+          <span class="sub">Unsupervised Outlier Detection</span>
+        </li>
+        <li>
+          <span class="num">6.</span> <strong>SHAP Engine</strong>
+          <span class="sub">Explainable AI Attribution</span>
+        </li>
+        <li>
+          <span class="num">7.</span> <strong>SQLite 3 (Local)</strong>
+          <span class="sub">Offline Resilient Buffer</span>
+        </li>
+        <li>
+          <span class="num">8.</span> <strong>NeonDB (Cloud)</strong>
+          <span class="sub">Serverless PostgreSQL Hub</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Tech Logos -->
+    <div>
+      <div style="font-size:10px;font-weight:800;color:#64748B;text-transform:uppercase;margin-bottom:4px;">
+        Architecture Modules:
+      </div>
+      <div class="logo-grid">
+        <div class="logo-pill highlight">🐹 Go Core</div>
+        <div class="logo-pill">🐍 Python</div>
+        <div class="logo-pill">⚛️ Next.js</div>
+        <div class="logo-pill">🌲 IsoForest</div>
+        <div class="logo-pill">📁 SQLite 3</div>
+        <div class="logo-pill">☁️ NeonDB</div>
+      </div>
+
+      <div class="links-section">
+        <div class="link-row">
+          <span>📦 Standalone:</span>
+          <a>AWS_SkyGuard_Station.exe</a>
+        </div>
+        <div class="link-row">
+          <span>🌐 Cloud Sync:</span>
+          <a>Neon PostgreSQL :5432</a>
+        </div>
+        <div class="link-row">
+          <span>📡 Port:</span>
+          <a>UDP 5000 / TCP 5001</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── RIGHT WORKFLOW CANVAS ─── -->
+  <main class="main-canvas">
+    
+    <!-- Header -->
+    <header class="slide-header">
+      <div class="slide-title-wrap">
+        <div class="slide-eyebrow">Smart India Hackathon 2026 · PS-ID 26073</div>
+        <h1 class="slide-title">TECHNICAL APPROACH &amp; <span>SYSTEM ARCHITECTURE</span></h1>
+      </div>
+
+      <div class="header-logos">
+        <div class="sih-badge">
+          <div class="sih-badge-text">
+            <span>Problem Statement ID</span>
+            PS-26073 (MoES / IMD)
+          </div>
+        </div>
+        <div class="sih-badge" style="border-color:#0284C7;background:#F0F9FF;">
+          <div class="sih-badge-text" style="color:#0369A1;">
+            <span>Smart India Hackathon</span>
+            SIH 2026 Grand Finale
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 3-Column Workflow Layout -->
+    <div class="workflow-grid">
+
+      <!-- ─── 1. INGESTION & FEATURE ENGINEERING (LEFT) ─── -->
+      <div class="col-ingest">
+        <div class="wf-card" style="border-color:#38BDF8;">
+          <div class="wf-card-title" style="color:#0369A1;">
+            📡 1. Telemetry Ingestion
+          </div>
+          
+          <div class="node-user-box">
+            <div class="node-icon">🗼</div>
+            <div class="node-title">AWS Observation Nodes</div>
+            <div class="node-desc">
+              • <strong>AWS-01 (Target):</strong> Direct LAN (UDP 5000)<br/>
+              • <strong>AWS-02, 03, 04:</strong> 4G/SATCOM ➔ NeonDB<br/>
+              • <strong>Packet Frame:</strong> 0xAA55 Binary / CRC-8
+            </div>
+          </div>
+
+          <div class="arrow-down-bridge">
+            <div class="arrow-down-line"></div>
+            <span>▼ Auto-Decoded &amp; Validated</span>
+          </div>
+
+          <!-- Feature Buffer Box -->
+          <div class="feature-buffer-box">
+            <div style="font-size:10px;font-weight:900;color:#6B21A8;margin-bottom:6px;text-transform:uppercase;">
+              ✨ 14-D Feature Buffer (N=15)
+            </div>
+            <div class="feature-item">
+              <span>Time Derivative:</span>
+              <strong>dT/dt, dP/dt, dRH/dt</strong>
+            </div>
+            <div class="feature-item">
+              <span>Diurnal Encoding:</span>
+              <strong>sin/cos(2π·hr/24)</strong>
+            </div>
+            <div class="feature-item">
+              <span>Dew Point Spread:</span>
+              <strong>T_dry − T_dew</strong>
+            </div>
+            <div class="feature-item">
+              <span>Rolling Statistics:</span>
+              <strong>μ, σ² (15 Ticks)</strong>
+            </div>
+            <div class="feature-item">
+              <span>Psychrometric:</span>
+              <strong>e(T) Vapor Balance</strong>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;font-size:8.5px;color:#64748B;text-align:center;">
+            ⇄ Synced to <strong>SQLite 3</strong> (Local) + <strong>NeonDB</strong> (Cloud)
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 2. 3-GUARD ANOMALY DETECTION ENGINE (CENTER) ─── -->
+      <div class="col-detection">
+        <div class="wf-card" style="border-color:#FB923C;flex:1;">
+          <div class="wf-card-title" style="color:#9A3412;">
+            🔍 2. 3-Guard Anomaly Detection Engine (detector.go)
+          </div>
+
+          <!-- Guard 1: Physical Guard -->
+          <div class="guard-node physical">
+            <div class="guard-header physical">
+              <span>🌡️ Guard 1 — Physical &amp; Thermodynamic QC</span>
+              <span class="badge-pill" style="background:#FEF3C7;color:#92400E;border-color:#FDE68A;">Deterministic</span>
+            </div>
+            <div class="formula-tag">
+              <strong>Magnus-Tetens:</strong> e_s(T) = 6.112 · exp(17.67T / (T + 243.5))<br/>
+              <strong>Bounds Check:</strong> T ∈ [-40, 55]°C | Freeze: σ² &lt; 10⁻⁵ | Tw ≤ Td
+            </div>
+            <div class="guard-desc">
+              Flags thermodynamic impossibility when |RH_reported − RH_theoretical| &gt; 35%.
+            </div>
+          </div>
+
+          <!-- Guard 2: ML Guard -->
+          <div class="guard-node ml">
+            <div class="guard-header ml">
+              <span>🌲 Guard 2 — Isolation Forest ML</span>
+              <span class="badge-pill" style="background:#D1FAE5;color:#065F46;border-color:#A7F3D0;">Unsupervised</span>
+            </div>
+            <div class="formula-tag">
+              <strong>Anomaly Score:</strong> S(x, n) = 2^(−E[h(x)] / c(n))<br/>
+              <strong>Threshold:</strong> τ = 0.62 | <strong>SHAP Attributions:</strong> Feature % Contribution
+            </div>
+            <div class="guard-desc">
+              Microservice scoring on 14-D vector with real-time SHAP feature culpability bars.
+            </div>
+          </div>
+
+          <!-- Guard 3: Spatial Guard -->
+          <div class="guard-node spatial">
+            <div class="guard-header spatial">
+              <span>🌍 Guard 3 — Spatial Consensus Matrix</span>
+              <span class="badge-pill" style="background:#E0F2FE;color:#0369A1;border-color:#BAE6FD;">Multi-Station</span>
+            </div>
+            <div class="formula-tag">
+              <strong>Neighbor Mean:</strong> T̄_neighbors = (1/K) Σ T_j<br/>
+              <strong>Spatial Delta:</strong> ΔT = |T_local − T̄_neighbors| &gt; 5.0°C &amp;&amp; σ²_spatial &lt; 4.0
+            </div>
+            <div class="guard-desc">
+              Real-time cross-validation: AWS-01 (LAN) vs Cloud-streamed AWS-02, 03, 04.
+            </div>
+          </div>
+
+          <!-- Hybrid Core Box -->
+          <div style="background:#FFF1F2;border:1.5px solid #FDA4AF;border-radius:8px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+            <span style="font-size:9.5px;font-weight:900;color:#9F1239;">⚡ Hybrid Anomaly Score Synthesis:</span>
+            <span style="font-size:9px;font-weight:800;color:#BE123C;font-family:'JetBrains Mono',monospace;">AnalyzeSpatial() ➔ Severity: LOW / MED / CRITICAL</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 3. DECISION, SELF-HEALING & CONTINUOUS LEARNING (RIGHT) ─── -->
+      <div class="col-decision">
+        <div class="wf-card" style="border-color:#34D399;flex:1;">
+          <div class="wf-card-title" style="color:#065F46;">
+            🧠 3. Decision, Self-Healing &amp; NWP Delivery
+          </div>
+
+          <!-- 3-Branch Decision Tri-Fork -->
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            
+            <!-- Branch 1: Benign / Nominal -->
+            <div class="decision-branch benign">
+              <div class="branch-icon">✅</div>
+              <div class="branch-content">
+                <div class="branch-title benign">Nominal Telemetry (Pass Verified)</div>
+                <div class="branch-sub">All 3 guards pass ➔ Raw data stream logged to SQLite/NeonDB</div>
+              </div>
+            </div>
+
+            <!-- Branch 2: Outlier / Glitch -->
+            <div class="decision-branch outlier">
+              <div class="branch-icon">🚨</div>
+              <div class="branch-content">
+                <div class="branch-title outlier">Spatial Outlier / Hardware Glitch</div>
+                <div class="branch-sub">
+                  • <strong>Spatial Imputation:</strong> T̂ = T̄_neighbors (Cluster Mean)<br/>
+                  • <strong>Inverse Psychrometric:</strong> Magnus equilibrium reconstruction<br/>
+                  • <strong>Maintenance Dispatch:</strong> Actionable alert to ground terminal
+                </div>
+              </div>
+            </div>
+
+            <!-- Branch 3: Drift / Freeze -->
+            <div class="decision-branch drift">
+              <div class="branch-icon">⚠️</div>
+              <div class="branch-content">
+                <div class="branch-title drift">Transient Spike / Sensor Drift</div>
+                <div class="branch-sub">
+                  • <strong>Temporal LWMA:</strong> x̂_t = Σ(i · x_i) / Σi (Linear weighted history)<br/>
+                  • <strong>Flagged:</strong> Operator notification on Cockpit Deck
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Continuous Learning Feedback Loop -->
+          <div class="continuous-learning-box" style="margin-top:6px;">
+            <div class="learning-title">
+              🔄 Continuous Learning &amp; Baseline Feedback Loop
+            </div>
+            <div class="learning-grid">
+              <div class="learning-pill">N=500 Clean Buffer</div>
+              <div class="learning-pill">Model Validation QC</div>
+              <div class="learning-pill">Auto-Retrain Pipeline</div>
+              <div class="learning-pill">Dynamic Threshold τ</div>
+            </div>
+          </div>
+
+          <!-- Downstream Export -->
+          <div class="downstream-box" style="margin-top:6px;">
+            <div>
+              <div class="downstream-title">🌤️ Verified Clean Data Stream</div>
+              <div class="downstream-sub">National Numerical Weather Prediction (NWP) Models (IMD / MoES)</div>
+            </div>
+            <div class="downstream-badge">LIVE ACTIVE</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="slide-footer">
+      <div>
+        <strong>SkyGuard AI:</strong> Autonomous Real-Time Fault Detection &amp; Self-Healing Telemetry System for Automatic Weather Stations
+      </div>
+      <div>
+        MoES / IMD Aligned · Smart India Hackathon 2026 · Confidential &amp; Proprietary
+      </div>
+    </footer>
+
+  </main>
+
+</body>
+</html>

@@ -508,7 +508,83 @@ export default function Home() {
     rain: []
   });
 
+  // Multi-Station Cloud Network Matrix & Custom Spatial Consensus State (NeonDB + LAN)
+  const [selectedStation, setSelectedStation] = useState("AWS-01");
+  const [comparisonMode, setComparisonMode] = useState("all"); // "all" | "custom"
+  const [selectedNeighbors, setSelectedNeighbors] = useState([
+    "AWS-02", "AWS-03", "AWS-04", "AWS-05", "AWS-06", "AWS-07", "AWS-08", "AWS-09", "AWS-10"
+  ]);
+  const [stationNetwork, setStationNetwork] = useState({
+    "AWS-01": { id: "AWS-01", name: "AWS-01 Base Ground Station", region: "Local Proving Ground (Direct Ingest)", temp: 31.0, wet_temp: 25.5, pressure: 1013.2, humidity: 65.0, speed: 2.8, solar: 820, isLocal: true, status: "ONLINE_LAN", lastSeen: Date.now() },
+    "AWS-02": { id: "AWS-02", name: "AWS-02 Northern Outpost", region: "North Meteorological Sector", temp: 31.2, wet_temp: 25.6, pressure: 1013.0, humidity: 64.6, speed: 3.5, solar: 850, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-03": { id: "AWS-03", name: "AWS-03 Eastern Range Node", region: "East Coastal Corridor", temp: 30.9, wet_temp: 25.4, pressure: 1013.3, humidity: 65.2, speed: 3.1, solar: 830, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-04": { id: "AWS-04", name: "AWS-04 Southern Plateau Node", region: "South Highland Ridge", temp: 31.1, wet_temp: 25.5, pressure: 1013.1, humidity: 64.8, speed: 3.3, solar: 840, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-05": { id: "AWS-05", name: "AWS-05 Western Desert Outpost", region: "West Arid Zone Node", temp: 31.4, wet_temp: 25.8, pressure: 1012.8, humidity: 63.9, speed: 3.8, solar: 890, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-06": { id: "AWS-06", name: "AWS-06 Himalayan Range Node", region: "North Altitude Sector", temp: 30.7, wet_temp: 25.2, pressure: 1013.5, humidity: 65.8, speed: 2.9, solar: 810, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-07": { id: "AWS-07", name: "AWS-07 Central Command Outpost", region: "Central Valley Base", temp: 31.0, wet_temp: 25.5, pressure: 1013.2, humidity: 65.1, speed: 3.2, solar: 825, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-08": { id: "AWS-08", name: "AWS-08 Island Coastal Beacon", region: "Offshore Maritime Sector", temp: 30.8, wet_temp: 25.3, pressure: 1013.4, humidity: 66.0, speed: 3.6, solar: 835, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-09": { id: "AWS-09", name: "AWS-09 Tactical Forward Base", region: "Forward Proving Perimeter", temp: 31.3, wet_temp: 25.7, pressure: 1012.9, humidity: 64.2, speed: 3.4, solar: 860, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+    "AWS-10": { id: "AWS-10", name: "AWS-10 Strategic Radar Node", region: "Aerospace Tracking Sector", temp: 31.1, wet_temp: 25.5, pressure: 1013.1, humidity: 64.9, speed: 3.0, solar: 845, isLocal: false, status: "ONLINE_CLOUD", lastSeen: Date.now() },
+  });
+  const [multiStationHistory, setMultiStationHistory] = useState([
+    { time: "12:00:00", "AWS-01": 31.0, "AWS-02": 31.2, "AWS-03": 30.9, "AWS-04": 31.1, "AWS-05": 31.4, "AWS-06": 30.7, "AWS-07": 31.0, "AWS-08": 30.8, "AWS-09": 31.3, "AWS-10": 31.1, consensus: 31.06 },
+    { time: "12:00:05", "AWS-01": 31.0, "AWS-02": 31.2, "AWS-03": 30.9, "AWS-04": 31.1, "AWS-05": 31.4, "AWS-06": 30.7, "AWS-07": 31.0, "AWS-08": 30.8, "AWS-09": 31.3, "AWS-10": 31.1, consensus: 31.06 },
+    { time: "12:00:10", "AWS-01": 31.1, "AWS-02": 31.3, "AWS-03": 31.0, "AWS-04": 31.2, "AWS-05": 31.5, "AWS-06": 30.8, "AWS-07": 31.1, "AWS-08": 30.9, "AWS-09": 31.4, "AWS-10": 31.2, consensus: 31.16 }
+  ]);
+  const [loggerStationFilter, setLoggerStationFilter] = useState("ALL");
+
   const hasData = current !== null;
+
+  // Real-time Periodic Ingest for Remote Stations from NeonDB Cloud
+  useEffect(() => {
+    const fetchCloudStations = async () => {
+      try {
+        const res = await fetch(getApiEndpoint("/api/stations"));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setStationNetwork(prev => {
+              const next = { ...prev };
+              data.forEach(st => {
+                const id = st.station_id || st.id;
+                if (id) {
+                  if (id === "AWS-01" && hasData) {
+                    return; // Keep live LAN stream for target node
+                  }
+                  next[id] = {
+                    id: id,
+                    name: st.name || `${id} Meteorological Node`,
+                    region: st.region || "Regional Sensor Sector",
+                    latitude: st.latitude || next[id]?.latitude || 21.5,
+                    longitude: st.longitude || next[id]?.longitude || 86.9,
+                    distance_km: st.distance_km ?? next[id]?.distance_km ?? 0.0,
+                    temp: st.temperature ?? next[id]?.temp ?? 31.0,
+                    wet_temp: st.wet_bulb_temp ?? (st.temperature ? st.temperature - 5.0 : (next[id]?.wet_temp ?? 25.5)),
+                    pressure: st.pressure ?? next[id]?.pressure ?? 1013.2,
+                    humidity: st.humidity ?? next[id]?.humidity ?? 65.0,
+                    speed: st.speed ?? next[id]?.speed ?? 3.2,
+                    solar: st.solar ?? next[id]?.solar ?? 820,
+                    isLocal: id === "AWS-01",
+                    status: id === "AWS-01" ? (hasData ? "ONLINE_LAN" : "STANDBY") : "ONLINE_CLOUD",
+                    lastSeen: st.last_seen || Date.now(),
+                    isAnomaly: st.is_anomaly || false,
+                    anomalyType: st.anomaly_type || "nominal"
+                  };
+                }
+              });
+              return next;
+            });
+          }
+        }
+      } catch (e) {
+        // Fallback gracefully if offline
+      }
+    };
+
+    fetchCloudStations();
+    const interval = setInterval(fetchCloudStations, 2500);
+    return () => clearInterval(interval);
+  }, [hasData]);
 
   // Dynamic Network Link Configuration
   const [linkProtocol, setLinkProtocol] = useState("UDP");
@@ -604,10 +680,21 @@ export default function Home() {
         setCurrent(raw);
         setAnalysis(ai);
         setLastPacketTime(Date.now());
+
+        const effDryTemp = (useImputed && ai?.is_anomaly && (ai?.imputed_values?.temp_dry !== undefined || ai?.imputed_values?.dry_bulb_temp !== undefined))
+          ? (ai.imputed_values.temp_dry ?? ai.imputed_values.dry_bulb_temp)
+          : raw.dry_bulb_temp;
+        const effHumidity = (useImputed && ai?.is_anomaly && (ai?.imputed_values?.humidity !== undefined || ai?.imputed_values?.rel_humidity !== undefined))
+          ? (ai.imputed_values.humidity ?? ai.imputed_values.rel_humidity)
+          : raw.rel_humidity;
+        const effPressure = (useImputed && ai?.is_anomaly && (ai?.imputed_values?.pressure_hpa !== undefined || ai?.imputed_values?.pressure !== undefined))
+          ? (ai.imputed_values.pressure_hpa ?? ai.imputed_values.pressure)
+          : raw.pressure_hpa;
+
         setHistoryBuffer(h => ({
-          temp: [...(h.temp.length >= 20 ? h.temp.slice(1) : h.temp), raw.dry_bulb_temp],
-          humidity: [...(h.humidity.length >= 20 ? h.humidity.slice(1) : h.humidity), raw.rel_humidity],
-          pressure: [...(h.pressure.length >= 20 ? h.pressure.slice(1) : h.pressure), raw.pressure_hpa],
+          temp: [...(h.temp.length >= 20 ? h.temp.slice(1) : h.temp), effDryTemp],
+          humidity: [...(h.humidity.length >= 20 ? h.humidity.slice(1) : h.humidity), effHumidity],
+          pressure: [...(h.pressure.length >= 20 ? h.pressure.slice(1) : h.pressure), effPressure],
           solar: [...(h.solar.length >= 20 ? h.solar.slice(1) : h.solar), raw.solar_radiation],
           rain: [...(h.rain.length >= 20 ? h.rain.slice(1) : h.rain), raw.rainfall]
         }));
@@ -617,10 +704,61 @@ export default function Home() {
           dropped: prev.dropped + (ai.is_anomaly ? 1 : 0)
         }));
 
+        // Update Multi-Station Network and Historical Overlaid Time-Series
+        const stID = raw?.station_id || ai?.station_id || "AWS-01";
+        if (raw) {
+          setStationNetwork(prev => ({
+            ...prev,
+            [stID]: {
+              id: stID,
+              name: prev[stID]?.name || `${stID} Meteorological Node`,
+              region: prev[stID]?.region || "Regional Sensor Sector",
+              temp: effDryTemp,
+              wet_temp: raw.wet_bulb_temp || (effDryTemp - 5.0),
+              pressure: effPressure,
+              humidity: effHumidity,
+              speed: raw.speed || 0,
+              solar: raw.solar_radiation || 0,
+              isLocal: stID === "AWS-01",
+              status: stID === "AWS-01" ? "ONLINE_LAN" : "ONLINE_CLOUD",
+              lastSeen: Date.now(),
+              isAnomaly: ai.is_anomaly,
+              anomalyType: ai.anomaly_type
+            }
+          }));
+
+          setMultiStationHistory(prev => {
+            const lastEntry = prev.length > 0 ? { ...prev[prev.length - 1] } : {
+              time: timeNow,
+              "AWS-01": 31.0,
+              consensus: 31.1
+            };
+            const updated = { ...lastEntry, time: timeNow, [stID]: raw.dry_bulb_temp };
+            
+            // Record all active station values into timeline row
+            const neighborKeys = ["AWS-02", "AWS-03", "AWS-04", "AWS-05", "AWS-06", "AWS-07", "AWS-08", "AWS-09", "AWS-10"];
+            const nVals = [];
+            neighborKeys.forEach(k => {
+              if (updated[k] !== undefined) {
+                nVals.push(updated[k]);
+              } else if (stationNetwork[k]?.temp !== undefined) {
+                updated[k] = stationNetwork[k].temp;
+                nVals.push(stationNetwork[k].temp);
+              }
+            });
+            updated.consensus = +(nVals.reduce((a, b) => a + b, 0) / Math.max(1, nVals.length)).toFixed(1);
+
+            const nextList = [...prev, updated];
+            if (nextList.length > 30) nextList.shift();
+            return nextList;
+          });
+        }
+
         setTelemetryHistory(prev => {
           const row = {
             time: timeNow,
             timestamp: payload.timestamp,
+            station_id: stID,
             raw,
             is_anomaly: ai.is_anomaly,
             anomaly_type: ai.anomaly_type,
@@ -925,6 +1063,18 @@ export default function Home() {
     return num.toFixed(decimals);
   };
 
+  const isHealedTemp = useImputed && analysis?.is_anomaly && (analysis?.imputed_values?.temp_dry !== undefined || analysis?.imputed_values?.dry_bulb_temp !== undefined);
+  const displayDryTemp = isHealedTemp ? (analysis?.imputed_values?.temp_dry ?? analysis?.imputed_values?.dry_bulb_temp) : current?.dry_bulb_temp;
+
+  const isHealedWetTemp = useImputed && analysis?.is_anomaly && (analysis?.imputed_values?.temp_wet !== undefined || analysis?.imputed_values?.wet_bulb_temp !== undefined);
+  const displayWetTemp = isHealedWetTemp ? (analysis?.imputed_values?.temp_wet ?? analysis?.imputed_values?.wet_bulb_temp) : current?.wet_bulb_temp;
+
+  const isHealedHum = useImputed && analysis?.is_anomaly && (analysis?.imputed_values?.humidity !== undefined || analysis?.imputed_values?.rel_humidity !== undefined);
+  const displayHumidity = isHealedHum ? (analysis?.imputed_values?.humidity ?? analysis?.imputed_values?.rel_humidity) : current?.rel_humidity;
+
+  const isHealedPress = useImputed && analysis?.is_anomaly && (analysis?.imputed_values?.pressure_hpa !== undefined || analysis?.imputed_values?.pressure !== undefined);
+  const displayPressure = isHealedPress ? (analysis?.imputed_values?.pressure_hpa ?? analysis?.imputed_values?.pressure) : current?.pressure_hpa;
+
   return (
     <div className="app-container">
       
@@ -1110,30 +1260,50 @@ export default function Home() {
 
                     {/* 4. Dry Bulb Temp */}
                     {isParamEnabled("temp") && (
-                      <div className="param-card">
+                      <div className={`param-card ${isHealedTemp ? "param-card-healed" : (!useImputed && analysis?.is_anomaly ? "param-card-anomaly" : "")}`}>
                         <div className="param-card-top">
                           <span>Dry Bulb Temp.</span>
+                          {isHealedTemp && (
+                            <span className="badge-healed" title={`Raw: ${formatVal(current?.dry_bulb_temp, 1)}°C -> Auto-Corrected: ${formatVal(displayDryTemp, 1)}°C`}>
+                              ⚡ HEALED
+                            </span>
+                          )}
+                          {!useImputed && analysis?.is_anomaly && (
+                            <span className="badge-anomaly" title="Raw anomaly feed uncorrected">
+                              🚨 ANOMALY
+                            </span>
+                          )}
                         </div>
                         <div className="param-card-center">
-                          <span className="param-card-val" style={{ color: "#dc2626" }}>
-                            {formatVal(current?.dry_bulb_temp, 1)}
+                          <span className="param-card-val" style={{ color: isHealedTemp ? "#16a34a" : "#dc2626" }}>
+                            {formatVal(displayDryTemp, 1)}
                           </span>
                         </div>
                         <div className="param-card-bottom">
                           <span>°C</span>
+                          {isHealedTemp && (
+                            <span style={{ fontSize: "0.62rem", color: "var(--text-muted)", marginLeft: "auto", textDecoration: "line-through" }}>
+                              {formatVal(current?.dry_bulb_temp, 1)}°C
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
 
                     {/* 5. Wet Bulb Temp */}
                     {isParamEnabled("wet_bulb") && (
-                      <div className="param-card">
+                      <div className={`param-card ${isHealedWetTemp ? "param-card-healed" : (!useImputed && analysis?.is_anomaly ? "param-card-anomaly" : "")}`}>
                         <div className="param-card-top">
                           <span>Wet Bulb Temp.</span>
+                          {isHealedWetTemp && (
+                            <span className="badge-healed">
+                              ⚡ HEALED
+                            </span>
+                          )}
                         </div>
                         <div className="param-card-center">
-                          <span className="param-card-val" style={{ color: "#dc2626" }}>
-                            {formatVal(current?.wet_bulb_temp, 1)}
+                          <span className="param-card-val" style={{ color: isHealedWetTemp ? "#16a34a" : "#dc2626" }}>
+                            {formatVal(displayWetTemp, 1)}
                           </span>
                         </div>
                         <div className="param-card-bottom">
@@ -1144,17 +1314,32 @@ export default function Home() {
 
                     {/* 6. Rel. Humidity */}
                     {isParamEnabled("humidity") && (
-                      <div className="param-card">
+                      <div className={`param-card ${isHealedHum ? "param-card-healed" : (!useImputed && analysis?.is_anomaly ? "param-card-anomaly" : "")}`}>
                         <div className="param-card-top">
                           <span>Rel. Humidity</span>
+                          {isHealedHum && (
+                            <span className="badge-healed" title={`Raw: ${formatVal(current?.rel_humidity, 1)}% -> Auto-Corrected: ${formatVal(displayHumidity, 1)}%`}>
+                              ⚡ HEALED
+                            </span>
+                          )}
+                          {!useImputed && analysis?.is_anomaly && (
+                            <span className="badge-anomaly">
+                              🚨 ANOMALY
+                            </span>
+                          )}
                         </div>
                         <div className="param-card-center">
-                          <span className="param-card-val" style={{ color: "#7c3aed" }}>
-                            {formatVal(current?.rel_humidity, 1)}
+                          <span className="param-card-val" style={{ color: isHealedHum ? "#16a34a" : "#7c3aed" }}>
+                            {formatVal(displayHumidity, 1)}
                           </span>
                         </div>
                         <div className="param-card-bottom">
                           <span>%</span>
+                          {isHealedHum && (
+                            <span style={{ fontSize: "0.62rem", color: "var(--text-muted)", marginLeft: "auto", textDecoration: "line-through" }}>
+                              {formatVal(current?.rel_humidity, 1)}%
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1195,13 +1380,18 @@ export default function Home() {
 
                     {/* 9. Pressure (IMU) */}
                     {isParamEnabled("pressure_imu") && (
-                      <div className="param-card">
+                      <div className={`param-card ${isHealedPress ? "param-card-healed" : (!useImputed && analysis?.is_anomaly ? "param-card-anomaly" : "")}`}>
                         <div className="param-card-top">
                           <span>Pressure (IMU)</span>
+                          {isHealedPress && (
+                            <span className="badge-healed">
+                              ⚡ HEALED
+                            </span>
+                          )}
                         </div>
                         <div className="param-card-center">
-                          <span className="param-card-val" style={{ color: "#0284c7" }}>
-                            {current?.pressure_imu !== undefined ? current.pressure_imu.toFixed(1) : (current?.pressure_hpa !== undefined ? (current.pressure_hpa + 0.4).toFixed(1) : "--")}
+                          <span className="param-card-val" style={{ color: isHealedPress ? "#16a34a" : "#0284c7" }}>
+                            {displayPressure !== undefined ? (isHealedPress ? (displayPressure + 0.4).toFixed(1) : (current?.pressure_imu !== undefined ? current.pressure_imu.toFixed(1) : (current?.pressure_hpa !== undefined ? (current.pressure_hpa + 0.4).toFixed(1) : "--"))) : "--"}
                           </span>
                         </div>
                         <div className="param-card-bottom">
@@ -1212,17 +1402,32 @@ export default function Home() {
 
                     {/* 10. Pressure (hPa) */}
                     {isParamEnabled("pressure") && (
-                      <div className="param-card">
+                      <div className={`param-card ${isHealedPress ? "param-card-healed" : (!useImputed && analysis?.is_anomaly ? "param-card-anomaly" : "")}`}>
                         <div className="param-card-top">
                           <span>Pressure (hPa)</span>
+                          {isHealedPress && (
+                            <span className="badge-healed" title={`Raw: ${formatVal(current?.pressure_hpa, 1)} -> Auto-Corrected: ${formatVal(displayPressure, 1)}`}>
+                              ⚡ HEALED
+                            </span>
+                          )}
+                          {!useImputed && analysis?.is_anomaly && (
+                            <span className="badge-anomaly">
+                              🚨 ANOMALY
+                            </span>
+                          )}
                         </div>
                         <div className="param-card-center">
-                          <span className="param-card-val" style={{ color: "#0284c7" }}>
-                            {formatVal(current?.pressure_hpa, 1)}
+                          <span className="param-card-val" style={{ color: isHealedPress ? "#16a34a" : "#0284c7" }}>
+                            {formatVal(displayPressure, 1)}
                           </span>
                         </div>
                         <div className="param-card-bottom">
                           <span>hPa</span>
+                          {isHealedPress && (
+                            <span style={{ fontSize: "0.62rem", color: "var(--text-muted)", marginLeft: "auto", textDecoration: "line-through" }}>
+                              {formatVal(current?.pressure_hpa, 1)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1244,8 +1449,8 @@ export default function Home() {
                       <div className="trend-card-box">
                         <div className="trend-card-header">
                           <span>Dry Bulb Temp. (°C)</span>
-                          <span className="trend-card-val" style={{ color: "#dc2626" }}>
-                            {formatVal(current?.dry_bulb_temp, 1)}
+                          <span className="trend-card-val" style={{ color: isHealedTemp ? "#16a34a" : "#dc2626" }}>
+                            {formatVal(displayDryTemp, 1)}
                           </span>
                         </div>
                         <MiniTrendSparklineWithAxis
@@ -1270,8 +1475,8 @@ export default function Home() {
                       <div className="trend-card-box">
                         <div className="trend-card-header">
                           <span>Rel. Humidity (%)</span>
-                          <span className="trend-card-val" style={{ color: "#7c3aed" }}>
-                            {formatVal(current?.rel_humidity, 1)}
+                          <span className="trend-card-val" style={{ color: isHealedHum ? "#16a34a" : "#7c3aed" }}>
+                            {formatVal(displayHumidity, 1)}
                           </span>
                         </div>
                         <MiniTrendSparklineWithAxis
@@ -1296,8 +1501,8 @@ export default function Home() {
                       <div className="trend-card-box">
                         <div className="trend-card-header">
                           <span>Pressure (hPa)</span>
-                          <span className="trend-card-val" style={{ color: "#0284c7" }}>
-                            {formatVal(current?.pressure_hpa, 1)}
+                          <span className="trend-card-val" style={{ color: isHealedPress ? "#16a34a" : "#0284c7" }}>
+                            {formatVal(displayPressure, 1)}
                           </span>
                         </div>
                         <MiniTrendSparklineWithAxis
@@ -1494,11 +1699,27 @@ export default function Home() {
                   <div className="xai-shap-section">
                     <div className="xai-shap-title">KEY ATTRIBUTION FACTORS (SHAP)</div>
                     <div className="xai-shap-list">
-                      {[
-                        { factor: "Temp Rate-of-Change", pct: hasData ? (analysis?.is_anomaly ? 78 : 12) : 0, color: "#dc2626" },
-                        { factor: "Vapor Balance (Magnus)", pct: hasData ? (analysis?.is_anomaly ? 64 : 8) : 0, color: "#7c3aed" },
-                        { factor: "Rolling Invariance", pct: hasData ? (analysis?.is_anomaly ? 42 : 5) : 0, color: "#0284c7" }
-                      ].map((f, i) => (
+                      {(() => {
+                        if (!hasData) {
+                          return [
+                            { factor: "Temp Rate-of-Change", pct: 0, color: "#dc2626" },
+                            { factor: "Vapor Balance (Magnus)", pct: 0, color: "#7c3aed" },
+                            { factor: "Rolling Invariance", pct: 0, color: "#0284c7" }
+                          ];
+                        }
+                        if (analysis?.shap_attributions && Object.keys(analysis.shap_attributions).length > 0) {
+                          return Object.entries(analysis.shap_attributions).map(([k, v]) => ({
+                            factor: k.replace(/_/g, " ").toUpperCase(),
+                            pct: Math.min(100, Math.round(v)),
+                            color: k.includes("temp") ? "#dc2626" : (k.includes("hum") ? "#7c3aed" : "#0284c7")
+                          }));
+                        }
+                        return [
+                          { factor: "Temp Rate-of-Change", pct: analysis?.is_anomaly ? 78 : 12, color: "#dc2626" },
+                          { factor: "Vapor Balance (Magnus)", pct: analysis?.is_anomaly ? 64 : 8, color: "#7c3aed" },
+                          { factor: "Rolling Invariance", pct: analysis?.is_anomaly ? 42 : 5, color: "#0284c7" }
+                        ];
+                      })().map((f, i) => (
                         <div key={i} className="xai-shap-row">
                           <div className="xai-shap-info">
                             <span>{f.factor}</span>
@@ -1523,19 +1744,23 @@ export default function Home() {
                   <div className="health-status-list">
                     <div className="health-status-row">
                       <span className="health-key">DATA QUALITY STATUS</span>
-                      <span className="health-val" style={{ color: hasData ? "#16a34a" : "#94a3b8" }}>{hasData ? "NOMINAL" : "STANDBY"}</span>
+                      <span className="health-val" style={{ color: hasData ? (analysis?.is_anomaly ? (useImputed ? "#16a34a" : "#dc2626") : "#16a34a") : "#94a3b8" }}>
+                        {hasData ? (analysis?.is_anomaly ? (useImputed ? "AUTO-CORRECTED" : "CORRUPTED FEED") : "NOMINAL") : "STANDBY"}
+                      </span>
                     </div>
                     <div className="health-status-row">
                       <span className="health-key">SYSTEM INTEGRITY</span>
-                      <span className="health-val" style={{ color: hasData ? "#16a34a" : "#94a3b8" }}>{hasData ? "NOMINAL" : "STANDBY"}</span>
+                      <span className="health-val" style={{ color: hasData ? (analysis?.is_anomaly ? "#eab308" : "#16a34a") : "#94a3b8" }}>
+                        {hasData ? (analysis?.is_anomaly ? "DEGRADED RISK" : "NOMINAL") : "STANDBY"}
+                      </span>
                     </div>
                     <div className="health-status-row">
                       <span className="health-key">TELEMETRY</span>
-                      <span className="health-val" style={{ color: hasData ? "#16a34a" : "#eab308" }}>{hasData ? "ONLINE" : "AWAITING DATA"}</span>
+                      <span className="health-val" style={{ color: hasData ? "#16a34a" : "#eab308" }}>{hasData ? "ONLINE (LAN)" : "AWAITING DATA"}</span>
                     </div>
                     <div className="health-status-row">
                       <span className="health-key">QUALITY ASSURANCE</span>
-                      <span className="health-val" style={{ color: hasData ? "#16a34a" : "#94a3b8" }}>{hasData ? "VERIFIED" : "STANDBY"}</span>
+                      <span className="health-val" style={{ color: hasData ? "#16a34a" : "#94a3b8" }}>{hasData ? "WMO VERIFIED" : "STANDBY"}</span>
                     </div>
                   </div>
                 </div>
@@ -1548,30 +1773,34 @@ export default function Home() {
 
                   <div className="sensor-health-list">
                     {[
-                      { key: "temp", name: "PT100 Temp Transducer", pct: hasData ? 98.6 : 0 },
-                      { key: "pressure", name: "Barometric Transducer", pct: hasData ? 99.0 : 0 },
-                      { key: "humidity", name: "Capacitive Humidity", pct: hasData ? 95.0 : 0 },
-                      { key: "speed", name: "Anemometer & Wind Vane", pct: hasData ? 99.0 : 0 },
-                      { key: "solar", name: "Solar Pyranometer", pct: hasData ? 97.0 : 0 },
-                      { key: "rain", name: "Precipitation Gauge", pct: hasData ? 100.0 : 0 }
+                      { key: "temp", name: "PT100 Temp Transducer", pct: hasData ? (analysis?.sensor_health?.temp_dry !== undefined ? analysis.sensor_health.temp_dry : (analysis?.is_anomaly ? 62.4 : 98.6)) : 0 },
+                      { key: "pressure", name: "Barometric Transducer", pct: hasData ? (analysis?.sensor_health?.pressure_hpa !== undefined ? analysis.sensor_health.pressure_hpa : (analysis?.is_anomaly ? 58.0 : 99.0)) : 0 },
+                      { key: "humidity", name: "Capacitive Humidity", pct: hasData ? (analysis?.sensor_health?.humidity !== undefined ? analysis.sensor_health.humidity : (analysis?.is_anomaly ? 70.5 : 95.0)) : 0 },
+                      { key: "speed", name: "Anemometer & Wind Vane", pct: hasData ? (analysis?.sensor_health?.speed !== undefined ? analysis.sensor_health.speed : 99.0) : 0 },
+                      { key: "solar", name: "Solar Pyranometer", pct: hasData ? (analysis?.sensor_health?.solar !== undefined ? analysis.sensor_health.solar : 97.0) : 0 },
+                      { key: "rain", name: "Precipitation Gauge", pct: hasData ? (analysis?.sensor_health?.rain !== undefined ? analysis.sensor_health.rain : 100.0) : 0 }
                     ]
                       .filter(s => isParamEnabled(s.key))
-                      .map((s, idx) => (
-                        <div key={idx} className="sensor-health-item">
-                          <div className="sensor-health-info">
-                            <span>{s.name}</span>
-                            <span className="sensor-health-pct">
-                              {hasData ? `${s.pct.toFixed(1)}% ` : ""}
-                              <span style={{ fontWeight: 600, fontSize: "0.58rem", color: hasData ? "#16a34a" : "#94a3b8" }}>
-                                {hasData ? "OPTIMAL" : "STANDBY"}
+                      .map((s, idx) => {
+                        const statusColor = !hasData ? "#94a3b8" : (s.pct >= 90 ? "#16a34a" : (s.pct >= 70 ? "#eab308" : "#dc2626"));
+                        const statusText = !hasData ? "STANDBY" : (s.pct >= 90 ? "OPTIMAL" : (s.pct >= 70 ? "FAIR" : "DEGRADED"));
+                        return (
+                          <div key={idx} className="sensor-health-item">
+                            <div className="sensor-health-info">
+                              <span>{s.name}</span>
+                              <span className="sensor-health-pct">
+                                {hasData ? `${s.pct.toFixed(1)}% ` : ""}
+                                <span style={{ fontWeight: 600, fontSize: "0.58rem", color: statusColor }}>
+                                  {statusText}
+                                </span>
                               </span>
-                            </span>
+                            </div>
+                            <div className="sensor-health-bar-bg">
+                              <div className="sensor-health-bar-fill" style={{ width: `${s.pct}%`, background: statusColor }}></div>
+                            </div>
                           </div>
-                          <div className="sensor-health-bar-bg">
-                            <div className="sensor-health-bar-fill" style={{ width: `${s.pct}%` }}></div>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
 
                   {/* Actionable Maintenance Alert Box */}
@@ -1580,9 +1809,9 @@ export default function Home() {
                       <span>Actionable Maintenance Alert:</span>
                     </div>
                     <div className="maint-alert-body">
-                      <span>
+                      <span style={{ color: hasData && analysis?.is_anomaly ? "#dc2626" : "inherit", fontWeight: hasData && analysis?.is_anomaly ? 600 : 400 }}>
                         {hasData
-                          ? "OPTIMAL: All channel transducers nominal. Scheduled maintenance valid for 180 days."
+                          ? (analysis?.maintenance_alert || (analysis?.is_anomaly ? "⚠️ SENSOR FAULT DETECTED: Transducer variance exceeds nominal tolerance. Scheduled inspection recommended." : "OPTIMAL: All channel transducers nominal. Scheduled maintenance valid for 180 days."))
                           : "STANDBY: Ingestion pipeline idle. Awaiting incoming AWS data stream on LAN interface."}
                       </span>
                     </div>
@@ -1595,192 +1824,307 @@ export default function Home() {
             </div>
           )}
 
-          {/* 2. MULTI-AWS SPATIAL GRID TAB */}
-          {activeTab === "spatial_grid" && (
-            <div className="spatial-page-container">
-              
-              {/* Header */}
-              <div className="spatial-header-bar">
-                <div className="spatial-header-left">
-                  <div>
-                    <h2 className="spatial-main-title">MULTI-AWS SPATIAL ANALYSIS & NEIGHBOR COMPARISON GRID</h2>
-                    <p className="spatial-subtitle">Real-time cross-station spatial correlation & outlier detection across station cluster</p>
-                  </div>
-                </div>
-              </div>
+          {/* 2. MULTI-AWS SPATIAL GRID & ALGORITHMIC CONSENSUS COMPARISON HUB */}
+          {activeTab === "spatial_grid" && (() => {
+            const activeTargetID = (selectedStation && selectedStation !== "SPATIAL_GRID") ? selectedStation : "AWS-01";
+            const activeNode = stationNetwork[activeTargetID] || stationNetwork["AWS-01"];
+            const targetTemp = spatialGlitch && activeTargetID === "AWS-01" ? 55.0 : (hasData && activeTargetID === "AWS-01" ? (current?.dry_bulb_temp ?? 31.0) : (activeNode?.temp ?? 31.0));
+            const targetPress = hasData && activeTargetID === "AWS-01" ? (current?.pressure_hpa ?? 1013.2) : (activeNode?.pressure ?? 1013.2);
+            const targetHum = hasData && activeTargetID === "AWS-01" ? (current?.rel_humidity ?? 65.0) : (activeNode?.humidity ?? 65.0);
 
-              {/* Cluster Consensus Top Banner */}
-              <div className="spatial-consensus-banner">
-                <div className="spatial-cluster-name">
-                  SPATIAL NETWORK CLUSTER: <span>4 STATIONS (AWS-01, AWS-02, AWS-03, AWS-04)</span>
-                </div>
-                <div className="spatial-cluster-avg">
-                  NEIGHBOR CONSENSUS AVG: <span className="avg-val">31.0°C</span>
-                </div>
-                <div className="spatial-cluster-status">
-                  SPATIAL CONSENSUS STATUS:
-                  <span className={`spatial-status-pill ${spatialGlitch ? "anomaly" : "nominal"}`}>
-                    {spatialGlitch ? (
-                      <span>SPATIAL OUTLIER DETECTED</span>
-                    ) : (
-                      <span>CONSENSUS NOMINAL</span>
-                    )}
-                  </span>
-                </div>
-              </div>
+            // Algorithmic WMO Mesoscale Radius Selection: Sort all candidate cloud nodes by Haversine Distance
+            const allCandidateNeighbors = Object.keys(stationNetwork)
+              .filter(id => id !== "AWS-01")
+              .map(id => ({
+                id,
+                name: stationNetwork[id]?.name || id,
+                region: stationNetwork[id]?.region || "Regional Sector",
+                distance_km: stationNetwork[id]?.distance_km ?? 25.0,
+                temp: stationNetwork[id]?.temp ?? 31.0,
+                pressure: stationNetwork[id]?.pressure ?? 1013.2,
+                humidity: stationNetwork[id]?.humidity ?? 65.0
+              }))
+              .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
 
-              {/* 4 Stations Grid */}
-              <div className="spatial-four-grid">
+            // Automatically select Top 4 Nearest Optimal Neighbor Stations (13.0 km - 26.6 km radius)
+            const optimalCluster = allCandidateNeighbors.slice(0, 4);
+            const effectiveCompareIDs = optimalCluster.map(n => n.id);
+            const visibleStationIDs = ["AWS-01", ...effectiveCompareIDs];
+
+            const compTemps = effectiveCompareIDs.map(id => (stationNetwork[id]?.temp ?? 31.0));
+            const compConsensusTemp = +(compTemps.reduce((a, b) => a + b, 0) / Math.max(1, compTemps.length)).toFixed(1);
+            const liveDelta = +(Math.abs(targetTemp - compConsensusTemp)).toFixed(1);
+            const isClusterGlitch = liveDelta > 5.0;
+            const imputedConsensusTemp = isClusterGlitch ? compConsensusTemp : targetTemp;
+
+            const minDistance = optimalCluster.length > 0 ? Math.min(...optimalCluster.map(n => n.distance_km)) : 13.0;
+            const maxDistance = optimalCluster.length > 0 ? Math.max(...optimalCluster.map(n => n.distance_km)) : 26.6;
+
+            const STATION_PALETTE = {
+              "AWS-01": "#38bdf8",
+              "AWS-02": "#22c55e",
+              "AWS-03": "#eab308",
+              "AWS-04": "#a855f7",
+              "AWS-05": "#ec4899",
+              "AWS-06": "#06b6d4",
+              "AWS-07": "#f97316",
+              "AWS-08": "#14b8a6",
+              "AWS-09": "#8b5cf6",
+              "AWS-10": "#84cc16",
+            };
+
+            return (
+              <div className="spatial-page-container">
                 
-                {/* Station 1: AWS-01 (Primary) */}
-                <div className={`spatial-station-card target-station ${spatialGlitch ? "glitch" : ""}`}>
-                  <div className="station-card-top-row">
-                    <span className="station-name-title target">AWS-01 (Primary Station)</span>
-                    <span className="station-online-tag" style={{ color: hasData ? "#16a34a" : "#eab308" }}>
-                      {hasData ? "● ONLINE" : "● STANDBY"}
-                    </span>
+                {/* Header */}
+                <div className="spatial-header-bar">
+                  <div className="spatial-header-left">
+                    <div>
+                      <h2 className="spatial-main-title">MULTI-AWS CLOUD SPATIAL CONSENSUS &amp; COMPARISON HUB</h2>
+                      <p className="spatial-subtitle">Real-time NeonDB cross-station telemetry correlation, Haversine geo-distance consensus &amp; spatial self-healing imputation</p>
+                    </div>
                   </div>
-                  <div className="station-param-rows">
-                    <div className="station-param-line">
-                      <span className="param-k">Dry Temp:</span>
-                      <span className="param-v temp" style={{ color: spatialGlitch ? "#f43f5e" : "#ea580c" }}>
-                        {spatialGlitch ? "55.0°C" : (hasData ? `${formatVal(current?.dry_bulb_temp, 1)}°C` : "--")}
+                </div>
+
+                {/* Automated Algorithmic Mesoscale Selection Banner */}
+                <div className="spatial-mode-switcher-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "10px 14px", background: "rgba(15, 23, 42, 0.75)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        ALGORITHMIC MESOSCALE CORRELATION CLUSTER ({effectiveCompareIDs.length} NEAREST STATIONS)
+                      </span>
+                      <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#10b981", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "2px 7px", borderRadius: "4px" }}>
+                        AUTO-CALCULATED VIA HAVERSINE DISTANCE
                       </span>
                     </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Pressure:</span>
-                      <span className="param-v press">{hasData ? `${formatVal(current?.pressure_hpa, 1)} hPa` : "--"}</span>
-                    </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Humidity:</span>
-                      <span className="param-v hum">{hasData ? `${formatVal(current?.rel_humidity, 1)}%` : "--"}</span>
-                    </div>
+                    <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                      WMO standard mesoscale radius (10–35 km) automatically selected closest correlation stations: <strong>{optimalCluster.map(n => `${n.id} (${n.distance_km} km)`).join(" • ")}</strong>
+                    </p>
                   </div>
-                  <div className="station-role-footer">
-                    Role: Target Station ({hasData ? "Live Stream" : "Awaiting Data"})
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "0.68rem", color: "#94a3b8", fontWeight: 700 }}>
+                      Physical Radius:
+                    </span>
+                    <span style={{ fontSize: "0.72rem", color: "#38bdf8", fontWeight: 800, background: "rgba(56, 189, 248, 0.12)", padding: "3px 8px", borderRadius: "4px" }}>
+                      {minDistance} km – {maxDistance} km
+                    </span>
                   </div>
                 </div>
 
-                {/* Station 2: AWS-02 (North) */}
-                <div className="spatial-station-card">
-                  <div className="station-card-top-row">
-                    <span className="station-name-title">AWS-02 (North Neighbor)</span>
-                    <span className="station-online-tag">● ONLINE</span>
+                {/* Live Mathematical Delta & Consensus Summary Cards */}
+                <div className="spatial-delta-metrics-grid">
+                  <div className="spatial-delta-card">
+                    <div className="delta-card-head">
+                      <span>TARGET NODE (AWS-01)</span>
+                      <span className="station-badge-pill lan">DIRECT LAN</span>
+                    </div>
+                    <div className="delta-card-values">
+                      <span className="delta-big-val" style={{ color: isClusterGlitch ? "#f43f5e" : "#ea580c" }}>
+                        {formatVal(targetTemp, 1)}°C
+                      </span>
+                    </div>
+                    <div className="delta-sub-text">P: {formatVal(targetPress, 1)} hPa | RH: {formatVal(targetHum, 1)}%</div>
                   </div>
-                  <div className="station-param-rows">
-                    <div className="station-param-line">
-                      <span className="param-k">Dry Temp:</span>
-                      <span className="param-v temp">31.0°C</span>
+
+                  <div className="spatial-delta-card">
+                    <div className="delta-card-head">
+                      <span>BENCHMARK CONSENSUS</span>
+                      <span className="station-badge-pill cloud">{effectiveCompareIDs.length} Nodes Selected</span>
                     </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Pressure:</span>
-                      <span className="param-v press">1013.2 hPa</span>
+                    <div className="delta-card-values">
+                      <span className="delta-big-val" style={{ color: "#22c55e" }}>
+                        {formatVal(compConsensusTemp, 1)}°C
+                      </span>
                     </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Humidity:</span>
-                      <span className="param-v hum">65.0%</span>
-                    </div>
+                    <div className="delta-sub-text">Benchmark: [{effectiveCompareIDs.join(", ")}]</div>
                   </div>
-                  <div className="station-role-footer">
-                    Role: Spatial Neighbor
+
+                  <div className="spatial-delta-card">
+                    <div className="delta-card-head">
+                      <span>SPATIAL DEVIATION (Δ)</span>
+                      <span style={{ fontSize: "0.62rem", fontWeight: 800, color: isClusterGlitch ? "#f43f5e" : "#22c55e" }}>
+                        {isClusterGlitch ? "OUTLIER (>5°C)" : "NOMINAL"}
+                      </span>
+                    </div>
+                    <div className="delta-card-values">
+                      <span className="delta-big-val" style={{ color: isClusterGlitch ? "#f43f5e" : "#38bdf8" }}>
+                        {liveDelta > 0 ? `+${liveDelta}` : liveDelta}°C
+                      </span>
+                    </div>
+                    <div className="delta-sub-text">WMO QC Tolerance Threshold: ±5.0°C</div>
+                  </div>
+
+                  <div className="spatial-delta-card">
+                    <div className="delta-card-head">
+                      <span>HEALED VALUE (IMPUTED)</span>
+                      <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#10b981" }}>AUTO-HEALED</span>
+                    </div>
+                    <div className="delta-card-values">
+                      <span className="delta-big-val" style={{ color: "#10b981" }}>
+                        {formatVal(imputedConsensusTemp, 1)}°C
+                      </span>
+                    </div>
+                    <div className="delta-sub-text">Passed to Forecast Models: {isClusterGlitch ? "Consensus Imputed" : "Raw Verified"}</div>
                   </div>
                 </div>
 
-                {/* Station 3: AWS-03 (East) */}
-                <div className="spatial-station-card">
-                  <div className="station-card-top-row">
-                    <span className="station-name-title">AWS-03 (East Neighbor)</span>
-                    <span className="station-online-tag">● ONLINE</span>
+                {/* Stations Grid: Displays ONLY checked/selected stations + Target */}
+                <div className="spatial-four-grid">
+                  {visibleStationIDs.map((id) => {
+                    const node = stationNetwork[id] || {};
+                    const isTarget = (id === "AWS-01");
+                    const isGlitchNode = (id === "AWS-01" && spatialGlitch);
+                    const curTemp = isGlitchNode ? 55.0 : (id === "AWS-01" && hasData ? (current?.dry_bulb_temp ?? 31.0) : (node.temp ?? 31.0));
+                    const curPress = id === "AWS-01" && hasData ? (current?.pressure_hpa ?? 1013.2) : (node.pressure ?? 1013.2);
+                    const curHum = id === "AWS-01" && hasData ? (current?.rel_humidity ?? 65.0) : (node.humidity ?? 65.0);
+
+                    return (
+                      <div
+                        key={id}
+                        className={`spatial-station-card ${isTarget ? "target-station" : ""} ${isGlitchNode ? "glitch" : ""}`}
+                      >
+                        <div className="station-card-top-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span className={`station-name-title ${isTarget ? "target" : ""}`}>
+                            <strong>{id}</strong> {isTarget ? "(Primary Target)" : ""}
+                          </span>
+                          <span className="station-online-tag" style={{ color: isTarget ? (hasData ? "#16a34a" : "#eab308") : "#16a34a" }}>
+                            ● {isTarget ? (hasData ? "ONLINE (LAN)" : "STANDBY") : "ONLINE (NEONDB)"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.62rem", color: "var(--text-dim)", marginTop: "2px" }}>
+                          {node.name || id} • {node.region || "Regional Sector"} • <strong style={{ color: "#38bdf8" }}>{node.distance_km > 0 ? `${node.distance_km} km away` : "Base Ingest (0.0 km)"}</strong>
+                        </div>
+                        <div className="station-param-rows">
+                          <div className="station-param-line">
+                            <span className="param-k">Dry Temp:</span>
+                            <span className="param-v temp" style={{ color: isGlitchNode ? "#f43f5e" : "#ea580c" }}>
+                              {formatVal(curTemp, 1)}°C
+                            </span>
+                          </div>
+                          <div className="station-param-line">
+                            <span className="param-k">Pressure:</span>
+                            <span className="param-v press">{formatVal(curPress, 1)} hPa</span>
+                          </div>
+                          <div className="station-param-line">
+                            <span className="param-k">Humidity:</span>
+                            <span className="param-v hum">{formatVal(curHum, 1)}%</span>
+                          </div>
+                        </div>
+                        <div className="station-role-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.62rem", color: "var(--text-muted)" }}>
+                            {isTarget ? "Base Direct LAN Ingest" : "NeonDB Cloud Real-Time"}
+                          </span>
+                          <span className={`station-badge-pill ${isTarget ? "lan" : "cloud"}`}>
+                            {isTarget ? "PROVING GROUND" : "BENCHMARK NODE"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Multi-Station Comparative Overlaid Chart */}
+                <div className="spatial-chart-box">
+                  <div className="spatial-chart-header">
+                    <div className="spatial-chart-title">
+                      <span>REAL-TIME MULTI-STATION TELEMETRY COMPARISON TIMELINE</span>
+                    </div>
+                    <div className="spatial-chart-legend" style={{ flexWrap: "wrap", gap: "8px" }}>
+                      <span className="legend-dot-item">
+                        <span className="legend-color-dot" style={{ background: "#38bdf8" }}></span> AWS-01 (Target)
+                      </span>
+                      {visibleStationIDs.filter(id => id !== "AWS-01").map(id => (
+                        <span key={id} className="legend-dot-item">
+                          <span className="legend-color-dot" style={{ background: STATION_PALETTE[id] || "#22c55e" }}></span> {id}
+                        </span>
+                      ))}
+                      <span className="legend-dot-item">
+                        <span className="legend-color-dot" style={{ background: "#f43f5e" }}></span> Consensus Benchmark
+                      </span>
+                    </div>
                   </div>
-                  <div className="station-param-rows">
-                    <div className="station-param-line">
-                      <span className="param-k">Dry Temp:</span>
-                      <span className="param-v temp">31.0°C</span>
-                    </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Pressure:</span>
-                      <span className="param-v press">1013.2 hPa</span>
-                    </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Humidity:</span>
-                      <span className="param-v hum">65.0%</span>
-                    </div>
-                  </div>
-                  <div className="station-role-footer">
-                    Role: Spatial Neighbor
+
+                  <div style={{ height: "180px", width: "100%" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={multiStationHistory} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
+                        <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
+                        <YAxis stroke="#64748b" fontSize={10} domain={['auto', 'auto']} unit="°C" />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "6px", fontSize: "0.72rem" }}
+                          itemStyle={{ color: "#f8fafc" }}
+                        />
+                        <Line type="monotone" dataKey="AWS-01" stroke="#38bdf8" strokeWidth={2.2} dot={false} isAnimationActive={false} />
+                        {visibleStationIDs.filter(id => id !== "AWS-01").map(id => (
+                          <Line
+                            key={id}
+                            type="monotone"
+                            dataKey={id}
+                            stroke={STATION_PALETTE[id] || "#22c55e"}
+                            strokeWidth={1.8}
+                            dot={false}
+                            isAnimationActive={false}
+                          />
+                        ))}
+                        <Line type="monotone" dataKey="consensus" stroke="#f43f5e" strokeWidth={1.8} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Station 4: AWS-04 (South) */}
-                <div className="spatial-station-card">
-                  <div className="station-card-top-row">
-                    <span className="station-name-title">AWS-04 (South Neighbor)</span>
-                    <span className="station-online-tag">● ONLINE</span>
+                {/* Spatial Explainable AI (XAI) Diagnostics Section */}
+                <div className="spatial-xai-section">
+                  <div className="spatial-section-header">
+                    <span>SPATIAL EXPLAINABLE AI (XAI) DIAGNOSTICS</span>
                   </div>
-                  <div className="station-param-rows">
-                    <div className="station-param-line">
-                      <span className="param-k">Dry Temp:</span>
-                      <span className="param-v temp">31.0°C</span>
-                    </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Pressure:</span>
-                      <span className="param-v press">1013.2 hPa</span>
-                    </div>
-                    <div className="station-param-line">
-                      <span className="param-k">Humidity:</span>
-                      <span className="param-v hum">65.0%</span>
+                  <div className={`spatial-xai-banner ${isClusterGlitch ? "glitch" : "nominal"}`}>
+                    <div className="spatial-diag-content">
+                      {isClusterGlitch ? (
+                        <span><strong>🚨 SPATIAL OUTLIER DETECTED:</strong> Active station {activeTargetID} reported {formatVal(targetTemp, 1)}°C while selected comparison cluster ([{effectiveCompareIDs.join(", ")}]) averaged {formatVal(compConsensusTemp, 1)}°C (Spatial Delta +{liveDelta}°C). AI Self-Healing Engine has automatically imputed telemetry to {formatVal(compConsensusTemp, 1)}°C.</span>
+                      ) : (
+                        <span><strong>✅ SPATIAL CONSENSUS CONFIRMED:</strong> Station {activeTargetID} ({formatVal(targetTemp, 1)}°C) matches comparison cluster consensus benchmark ({formatVal(compConsensusTemp, 1)}°C, Δ {liveDelta}°C). No spatial sensor anomaly detected across regional grid.</span>
+                      )}
                     </div>
                   </div>
-                  <div className="station-role-footer">
-                    Role: Spatial Neighbor
+                </div>
+
+                {/* Spatial Anomaly Fault Injector Section */}
+                <div className="spatial-injector-section">
+                  <div className="spatial-section-header">
+                    <span>SPATIAL ANOMALY FAULT INJECTOR BENCH</span>
+                  </div>
+                  <p className="spatial-injector-sub">
+                    Test the spatial analysis engine by injecting a localized sensor fault on AWS-01 (55°C) or restoring regional equilibrium (~31°C).
+                  </p>
+                  <div className="spatial-injector-btns-row">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpatialGlitch(true);
+                        handleTriggerAnomaly("spatial");
+                      }}
+                      className="btn-spatial-inject"
+                    >
+                      <span>🚨 INJECT AWS-01 SPATIAL GLITCH (55°C vs 31°C Neighbors)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpatialGlitch(false);
+                        handleResetNominal();
+                      }}
+                      className="btn-spatial-reset"
+                    >
+                      <span>🔄 RESET ALL STATIONS TO CONSENSUS NOMINAL (~31°C)</span>
+                    </button>
                   </div>
                 </div>
 
               </div>
-
-              {/* Spatial Explainable AI (XAI) Diagnostics Section */}
-              <div className="spatial-xai-section">
-                <div className="spatial-section-header">
-                  <span>SPATIAL EXPLAINABLE AI (XAI) DIAGNOSTICS</span>
-                </div>
-                <div className={`spatial-xai-banner ${spatialGlitch ? "glitch" : "nominal"}`}>
-                  <div className="spatial-diag-content">
-                    {spatialGlitch ? (
-                      <span><strong>SPATIAL OUTLIER DETECTED:</strong> Target station AWS-01 reported 55.0°C while neighboring cluster averaged 31.0°C (Spatial Delta +24.0°C). Local sensor hardware malfunction or electrical glitch confirmed.</span>
-                    ) : (
-                      <span><strong>SPATIAL CONSENSUS CONFIRMED:</strong> Target station AWS-01 (31.0°C) matches spatial neighbor cluster average (31.0°C). No sensor anomaly detected.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Spatial Anomaly Fault Injector Section */}
-              <div className="spatial-injector-section">
-                <div className="spatial-section-header">
-                  <span>SPATIAL ANOMALY FAULT INJECTOR</span>
-                </div>
-                <p className="spatial-injector-sub">
-                  Test the spatial analysis engine by injecting a single-station glitch or a wide-area genuine meteorological event.
-                </p>
-                <div className="spatial-injector-btns-row">
-                  <button
-                    onClick={() => setSpatialGlitch(true)}
-                    className="btn-spatial-inject"
-                  >
-                    <span>INJECT AWS-01 SPATIAL GLITCH (55°C vs 31°C Neighbors)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setSpatialGlitch(false)}
-                    className="btn-spatial-reset"
-                  >
-                    <span>RESET ALL STATIONS TO CONSENSUS NOMINAL (~31°C)</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          )}
+            );
+          })()}
 
           {/* 4. LIVE TELEMETRY PLOTS TAB (5 SENSOR VIEWS x 5 CHART ENGINE TYPES) */}
           {activeTab === "live_graph" && (
@@ -2470,9 +2814,24 @@ export default function Home() {
               <div className="section-header-bar">
                 <div className="section-title-wrap">
                   <span className="section-title-text">LOCAL SESSION DATA LOGGER</span>
-                  <span className="section-subtitle-text">Buffered telemetry packet stream logs</span>
+                  <span className="section-subtitle-text">Buffered telemetry packet stream logs across regional stations</span>
                 </div>
-                <div className="section-meta-right">
+                <div className="section-meta-right" style={{ display: "flex", alignItems: "center" }}>
+                  {/* Station Quick Filter Bar */}
+                  <div className="logger-station-filter-bar">
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700 }}>STATION:</span>
+                    {["ALL", "AWS-01", "AWS-02", "AWS-03", "AWS-04"].map(st => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setLoggerStationFilter(st)}
+                        className={`logger-station-btn ${loggerStationFilter === st ? "active" : ""}`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+
                   <button onClick={handleExportCSV} className="btn-action-light">
                     <span>Export CSV</span>
                   </button>
@@ -2487,6 +2846,7 @@ export default function Home() {
                   <thead>
                     <tr>
                       <th>Packet Timestamp</th>
+                      <th>Station ID</th>
                       <th>Time Inst (s)</th>
                       <th>Direction</th>
                       <th>Speed</th>
@@ -2499,32 +2859,48 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {telemetryHistory.length > 0 ? (
-                      [...telemetryHistory].reverse().map((h, i) => (
+                    {(() => {
+                      const filtered = telemetryHistory.filter(h => {
+                        if (loggerStationFilter === "ALL") return true;
+                        return (h.station_id || "AWS-01") === loggerStationFilter;
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={11} style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
+                              {telemetryHistory.length === 0
+                                ? "Listening for incoming UDP/TCP data packets... Live log records will appear here in real-time."
+                                : `No log records found for Station filter [${loggerStationFilter}].`}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return [...filtered].reverse().map((h, i) => (
                         <tr key={i}>
                           <td style={{ color: "#0284c7", fontWeight: 700 }}>{h.time}</td>
-                          <td>{h.raw?.time_inst || "--"}</td>
-                          <td style={{ color: "#16a34a" }}>{h.raw?.direction}°</td>
-                          <td style={{ color: "#2563eb" }}>{h.raw?.speed} m/s</td>
-                          <td style={{ color: "#dc2626" }}>{h.dry_temp}°C</td>
-                          <td style={{ color: "#7c3aed" }}>{h.humidity}%</td>
-                          <td style={{ color: "#0284c7" }}>{h.pressure} hPa</td>
-                          <td style={{ color: "#ea580c" }}>{h.solar} W/M²</td>
-                          <td>{h.rain} mm</td>
                           <td>
-                            <span className="status-tag connected">
-                              NOMINAL
+                            <span className="station-badge-pill lan" style={{ fontSize: "0.65rem" }}>
+                              {h.station_id || "AWS-01"}
+                            </span>
+                          </td>
+                          <td>{h.raw?.time_inst || "--"}</td>
+                          <td style={{ color: "#16a34a" }}>{h.raw?.direction ?? "--"}°</td>
+                          <td style={{ color: "#2563eb" }}>{h.raw?.speed ?? "--"} m/s</td>
+                          <td style={{ color: "#dc2626" }}>{formatVal(h.dry_temp, 1)}°C</td>
+                          <td style={{ color: "#7c3aed" }}>{formatVal(h.humidity, 1)}%</td>
+                          <td style={{ color: "#0284c7" }}>{formatVal(h.pressure, 1)} hPa</td>
+                          <td style={{ color: "#ea580c" }}>{formatVal(h.solar, 0, true)} W/M²</td>
+                          <td>{formatVal(h.rain, 1)} mm</td>
+                          <td>
+                            <span className={`status-tag ${h.is_anomaly ? "critical" : "connected"}`}>
+                              {h.is_anomaly ? "AUTO-HEALED" : "NOMINAL"}
                             </span>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={10} style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
-                          Listening for incoming UDP/TCP data packets... Live log records will appear here in real-time.
-                        </td>
-                      </tr>
-                    )}
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>

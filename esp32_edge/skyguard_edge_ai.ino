@@ -192,7 +192,7 @@ void setup() {
     skyguard_edge_init(&edge_state);
 
     Serial.println("=================================================");
-    Serial.println("DRDO AWS SKYGUARD - ESP32 EDGE AI INITIALIZED");
+    Serial.println("AWS SKYGUARD - ESP32 EDGE AI INITIALIZED");
     Serial.println("Low-power Edge AI Sensor Anomaly Engine Active");
     Serial.println("=================================================");
 

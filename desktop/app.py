@@ -5,11 +5,26 @@ import webbrowser
 import subprocess
 import time
 import socket
-import webview
 import shutil
+import traceback
+
+# Explicit imports for PyInstaller backend packaging
+try:
+    import clr
+    import clr_loader
+except ImportError:
+    pass
+
+import webview
+try:
+    import webview.platforms.winforms
+    import webview.platforms.edgechromium
+    import webview.platforms.mshtml
+except ImportError:
+    pass
 
 # Configure WebView2 and proxy settings before any other imports
-os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = "--no-proxy-server"
+os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = "--no-proxy-server --disable-http-cache --disable-application-cache --disable-cache"
 os.environ["no_proxy"] = "localhost,127.0.0.1"
 
 def is_webview2_installed():
@@ -158,25 +173,40 @@ class DesktopApp:
                 pass
 
 def main():
-    app = DesktopApp()
-    app.start_backend()
+    try:
+        app = DesktopApp()
+        app.start_backend()
 
-    window = webview.create_window(
-        "AUTOMATED WEATHER STATION - SkyGuard Ground Telemetry Station",
-        url=app.url,
-        width=1920,
-        height=1080,
-        min_size=(1200, 780),
-        background_color="#060913",
-        text_select=False,
-        zoomable=True
-    )
+        window = webview.create_window(
+            "AUTOMATED WEATHER STATION - SkyGuard Ground Telemetry Station",
+            url=app.url,
+            width=1920,
+            height=1080,
+            min_size=(1200, 780),
+            background_color="#060913",
+            text_select=False,
+            zoomable=True
+        )
 
-    def on_closed():
-        app.stop_backend()
+        def on_closed():
+            app.stop_backend()
 
-    window.events.closed += on_closed
-    webview.start(gui="edgechromium", debug=False)
+        window.events.closed += on_closed
+        try:
+            webview.start(gui="edgechromium", debug=False)
+        except Exception:
+            webview.start(debug=False)
+    except Exception as e:
+        crash_log = os.path.join(exe_dir, "app_crash.log")
+        err_msg = f"Fatal Error Starting Desktop Console:\n\n{traceback.format_exc()}"
+        try:
+            with open(crash_log, "w", encoding="utf-8") as f:
+                f.write(err_msg)
+        except Exception:
+            pass
+        if os.name == 'nt':
+            ctypes.windll.user32.MessageBoxW(0, err_msg, "SkyGuard Station Error", 0x10)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

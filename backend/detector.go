@@ -191,6 +191,9 @@ func (d *Detector) AnalyzeSpatial(stationID string, temp, humidity, pressure flo
 		},
 	}
 
+	historyVals := d.history.GetAll()
+	cleanVals := d.cleanHistory.GetAll()
+
 	// 1. Query Real ML Inference Microservice (Isolation Forest)
 	mlRes := d.queryMLInferenceService(temp, pressure, humidity)
 	if mlRes != nil && mlRes.IsAnomaly {
@@ -206,6 +209,9 @@ func (d *Detector) AnalyzeSpatial(stationID string, temp, humidity, pressure flo
 
 		d.flagAnomaly(&result, mlRes.AnomalyType, mlRes.Severity, confVal, explanation)
 		result.ShapAttributions = mlRes.ShapAttributions
+		result.ImputedValues["temp_dry"] = d.getImputedValue("temp_dry", cleanVals)
+		result.ImputedValues["humidity"] = d.getImputedValue("humidity", cleanVals)
+		result.ImputedValues["pressure_hpa"] = d.getImputedValue("pressure_hpa", cleanVals)
 	}
 
 	// 2. Calculate Spatial Statistics (Optional Contextual Evidence)
@@ -245,18 +251,7 @@ func (d *Detector) AnalyzeSpatial(stationID string, temp, humidity, pressure flo
 		result.ImputedValues["temp_dry"] = neighborAvg
 	}
 
-	historyVals := d.history.GetAll()
-	cleanVals := d.cleanHistory.GetAll()
-
-	if len(historyVals) < 5 {
-		d.history.Push(current)
-		d.cleanHistory.Push(current)
-		return result
-	}
-
-	last := historyVals[len(historyVals)-1]
-
-	// 3. Deterministic Hard Bounds Safety Fallback
+	// 3. Deterministic Hard Bounds Safety Fallback (Always evaluated)
 	if !result.IsAnomaly {
 		if temp < d.tempMin || temp > d.tempMax {
 			d.flagAnomaly(&result, "out_of_bounds", "high", 99.0,
@@ -275,6 +270,16 @@ func (d *Detector) AnalyzeSpatial(stationID string, temp, humidity, pressure flo
 			result.ShapAttributions = map[string]float64{"pressure": 92.5, "temperature": 4.0, "humidity": 3.5}
 		}
 	}
+
+	if len(historyVals) < 2 {
+		d.history.Push(current)
+		if !result.IsAnomaly {
+			d.cleanHistory.Push(current)
+		}
+		return result
+	}
+
+	last := historyVals[len(historyVals)-1]
 
 	// 4. Rate-of-Change Spike Safety Fallback
 	if !result.IsAnomaly {
@@ -414,7 +419,16 @@ func (d *Detector) flagAnomaly(res *AnomalyResult, aType, severity string, confi
 
 func (d *Detector) getImputedValue(param string, cleanVals []map[string]float64) float64 {
 	if len(cleanVals) == 0 {
-		return 0
+		switch param {
+		case "temp_dry":
+			return 31.0
+		case "humidity":
+			return 65.0
+		case "pressure_hpa":
+			return 1013.2
+		default:
+			return 0
+		}
 	}
 	sum := 0.0
 	weightSum := 0.0
@@ -423,5 +437,9 @@ func (d *Detector) getImputedValue(param string, cleanVals []map[string]float64)
 		sum += cleanVals[i][param] * weight
 		weightSum += weight
 	}
-	return sum / weightSum
+	if weightSum == 0 {
+		return 31.0
+	}
+	return math.Round((sum/weightSum)*10.0) / 10.0
 }
+
